@@ -1,4 +1,3 @@
-# app.py
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -9,12 +8,6 @@ import pytz
 import os
 
 app = Flask(__name__)
-
-# Store the latest data in memory
-latest_data = {
-    'teams': [],
-    'last_updated': None
-}
 
 def clean_team_name(name):
     return re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
@@ -52,7 +45,7 @@ def scrape_team_data(url):
         print(f"Error scraping {url}: {e}")
     return None
 
-def update_data():
+def get_all_team_data():
     base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
     teams_data = []
     
@@ -70,33 +63,16 @@ def update_data():
         time.sleep(1)
     
     teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
-    
-    # Update the global data
-    latest_data['teams'] = teams_data
-    latest_data['last_updated'] = datetime.now(pytz.timezone('US/Pacific'))
+    return teams_data
 
 @app.route('/')
 def home():
-    # If no data yet, get it
-    if not latest_data['teams']:
-        update_data()
+    teams = get_all_team_data()
+    last_updated = datetime.now(pytz.timezone('US/Pacific'))
     return render_template('rankings.html', 
-                         teams=latest_data['teams'],
-                         last_updated=latest_data['last_updated'])
-
-def background_update():
-    while True:
-        update_data()
-        time.sleep(300)  # Update every 5 minutes
+                         teams=teams,
+                         last_updated=last_updated)
 
 if __name__ == '__main__':
-    # Start the background update thread
-    from threading import Thread
-    update_thread = Thread(target=background_update, daemon=True)
-    update_thread.start()
-    
-    # Get port from environment variable (for Render)
     port = int(os.environ.get('PORT', 5000))
-    
-    # Run the Flask app
     app.run(host='0.0.0.0', port=port)
