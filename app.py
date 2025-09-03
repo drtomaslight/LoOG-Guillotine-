@@ -6,8 +6,26 @@ import re
 from datetime import datetime
 import pytz
 import os
+from functools import lru_cache
+import threading
 
 app = Flask(__name__)
+
+# Cache the data for 5 minutes
+@lru_cache(maxsize=1)
+def get_cached_data(cache_key):
+    base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
+    teams_data = []
+    
+    for team_num in range(1, 17):
+        url = f"{base_url}{team_num}"
+        team_data = scrape_team_data(url)
+        if team_data:
+            teams_data.append(team_data)
+        time.sleep(0.5)  # Reduced delay
+    
+    teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+    return teams_data
 
 def clean_team_name(name):
     return re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
@@ -25,17 +43,16 @@ def scrape_team_data(url):
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
-        
         team_name = get_team_name(soup)
         
         proj_div = soup.find('div', class_='team-card-stats')
         if proj_div and 'Proj Points' in proj_div.text:
             proj_span = proj_div.find('span', class_='Fw-b')
-            if proj_span:
+               if proj_span:
                 return {
                     'team_name': team_name,
                     'projected_points': float(proj_span.text.strip())
@@ -45,24 +62,27 @@ def scrape_team_data(url):
         print(f"Error scraping {url}: {e}")
     return None
 
+# Background update task
+def update_cache():
+    while True:
+        try:
+            cache_key = int(time.time() / 300)  # Changes every 5 minutes
+            get_cached_data.cache_clear()
+            get_cached_data(cache_key)
+        except Exception as e:
+            print(f"Cache update error: {e}")
+        time.sleep(300)  # Wait 5 minutes
+
+@app.before_first_request
+def start_update_thread():
+    thread = threading.Thread(target=update_cache, daemon=True)
+    thread.start()
+
 @app.route('/')
 def home():
     try:
-        base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
-        teams_data = []
-        
-        # Scrape all teams
-        for team_num in range(1, 17):
-            url = f"{base_url}{team_num}"
-            print(f"Scraping team {team_num}...")
-            
-            team_data = scrape_team_data(url)
-            if team_data:
-                teams_data.append(team_data)
-                print(f"Found: {team_data['team_name']} - {team_data['projected_points']}")
-            time.sleep(1)
-        
-        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+        cache_key = int(time.time() / 300)  # Changes every 5 minutes
+        teams_data = get_cached_data(cache_key)
         last_updated = datetime.now(pytz.timezone('US/Pacific'))
         
         template = """
@@ -83,6 +103,7 @@ def home():
                     border-collapse: collapse; 
                     width: 100%;
                     margin-top: 20px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
                 }
                 th, td { 
                     border: 1px solid #ddd; 
@@ -103,6 +124,9 @@ def home():
                     color: #666;
                     font-style: italic;
                     margin-bottom: 20px;
+                    background-color: #f9f9f9;
+                    padding: 10px;
+                    border-radius: 4px;
                 }
                 h1 {
                     color: #333;
