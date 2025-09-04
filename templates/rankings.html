@@ -47,13 +47,36 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             background-color: var(--table-bg);
         }
-
+        
         th, td { 
             border: 1px solid var(--table-border); 
             padding: 12px; 
             text-align: left; 
+            white-space: nowrap;
         }
-
+        
+        /* Add horizontal scroll for small screens */
+        @media screen and (max-width: 800px) {
+            .table-container {
+                overflow-x: auto;
+                margin: 0 -20px;
+                padding: 0 20px;
+            }
+            
+            table {
+                min-width: 800px;
+            }
+        }
+        /* Add this to your style section */
+        td:last-child, th:last-child {
+            font-weight: bold;
+            background-color: var(--table-alt-bg);
+        }
+        
+        /* Optional: Add a subtle border to separate the total column */
+        td:nth-last-child(2), th:nth-last-child(2) {
+            border-right: 2px solid var(--table-border);
+        }
         th { 
             background-color: var(--header-bg); 
             color: var(--header-text); 
