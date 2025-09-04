@@ -37,8 +37,12 @@ def scrape_team_data(url):
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
         
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.text, 'html.parparser')
         team_name = get_team_name(soup)
+        
+        # Get current week
+        week_element = soup.find('span', {'id': 'selectlist_nav'})
+        current_week = week_element['title'] if week_element else "Unknown Week"
         
         proj_div = soup.find('div', class_='team-card-stats')
         if proj_div and 'Proj Points' in proj_div.text:
@@ -46,13 +50,13 @@ def scrape_team_data(url):
             if proj_span:
                 return {
                     'team_name': team_name,
-                    'projected_points': float(proj_span.text.strip())
+                    'projected_points': float(proj_span.text.strip()),
+                    'current_week': current_week
                 }
     except Exception as e:
         print(f"Error scraping {url}: {e}")
     return None
 
-# Update get_all_teams function
 def get_all_teams():
     # Try to get data from cache
     cached = cache.get('teams_data')
@@ -63,6 +67,7 @@ def get_all_teams():
     base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
     teams_data = []
     seen_teams = set()
+    current_week = "Unknown Week"
     
     for team_num in range(1, 17):
         url = f"{base_url}{team_num}"
@@ -74,6 +79,7 @@ def get_all_teams():
                 team_data['team_number'] = team_num
                 teams_data.append(team_data)
                 seen_teams.add(team_data['team_name'])
+                current_week = team_data.get('current_week', current_week)
                 print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
         time.sleep(0.5)
 
@@ -82,7 +88,8 @@ def get_all_teams():
         # Store in cache for 1 minute
         cache.set('teams_data', {
             'teams': teams_data,
-            'last_updated': datetime.now(pytz.timezone('US/Pacific'))
+            'last_updated': datetime.now(pytz.timezone('US/Pacific')),
+            'current_week': current_week
         }, timeout=60)
         
     return teams_data
@@ -97,10 +104,12 @@ def home():
         teams_data = get_all_teams()
         cached_data = cache.get('teams_data')
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
+        current_week = cached_data.get('current_week', 'Unknown Week') if cached_data else 'Unknown Week'
         
-        return render_template('rankings.html',  # Change this line
+        return render_template('rankings.html',
                              teams=teams_data, 
-                             last_updated=last_updated)
+                             last_updated=last_updated,
+                             current_week=current_week)
             
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
