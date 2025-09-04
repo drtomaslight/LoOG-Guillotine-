@@ -29,7 +29,8 @@ def get_team_name(soup):
         return clean_team_name(name)
     return "Unknown Team"
 
-def scrape_team_data(url, retries=3):  # Changed from retretries to retries
+def scrape_team_data(team_num, week=1):
+    url = f"https://football.fantasysports.yahoo.com/f1/723352/{team_num}/team?&week={week}&stat1=S&stat2=W"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -37,7 +38,7 @@ def scrape_team_data(url, retries=3):  # Changed from retretries to retries
         'Connection': 'keep-alive',
     }
 
-    for attempt in range(retries):  # Changed from retretries to retries
+    for attempt in range(3):
         try:
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
@@ -47,7 +48,7 @@ def scrape_team_data(url, retries=3):  # Changed from retretries to retries
             team_name = get_team_name(soup)
             
             week_element = soup.find('span', {'id': 'selectlist_nav'})
-            current_week = week_element['title'] if week_element else "Unknown Week"
+            current_week = week_element['title'] if week_element else f"Week {week}"
             
             proj_div = soup.find('div', class_='team-card-stats')
             if proj_div and 'Proj Points' in proj_div.text:
@@ -55,35 +56,42 @@ def scrape_team_data(url, retries=3):  # Changed from retretries to retries
                 if proj_span:
                     return {
                         'team_name': team_name,
-                        'projected_points': float(proj_span.text.strip()),
+                        'team_number': teateam_num,
+                        f'week_{week}_projected': float(proj_span.text.strip()),
                         'current_week': current_week
                     }
             time.sleep(1)
         except Exception as e:
             print(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
-            if attempt < retries - 1:  # Changed from retretries to retries
+            if attempt < 2:
                 time.sleep(1)
     return None
 
 def update_cache_in_background():
-    base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
     teams_data = []
     seen_teams = set()
     current_week = "Unknown Week"
     
     for team_num in range(1, 17):
-        url = f"{base_url}{team_num}"
-        team_data = scrape_team_data(url)
+        # Get Week 1 data
+        team_data = scrape_team_data(team_num, week=1)
         if team_data:
+            # Get Week 2 data
+            week2_data = scrape_team_data(team_num, week=2)
+            if week2_data:
+                team_data['week_2_projected'] = week2_data['week_2_projected']
+                # Calculate total
+                team_data['total_projected'] = team_data['week_1_projected'] + team_data['week_2_projected']
+                
             if team_data['team_name'] not in seen_teams:
-                team_data['team_number'] = team_num
                 teams_data.append(team_data)
                 seen_teams.add(team_data['team_name'])
                 current_week = team_data.get('current_week', current_week)
         time.sleep(1)
 
     if teams_data:
-        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+        # Sort by total projected points
+        teams_data.sort(key=lambda x: x.get('total_projected', 0), reverse=True)
         cache.set('teams_data', {
             'teams': teams_data,
             'last_updated': datetime.now(pytz.timezone('US/Pacific')),
