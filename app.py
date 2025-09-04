@@ -29,7 +29,7 @@ def get_team_name(soup):
         return clean_team_name(name)
     return "Unknown Team"
 
-def scrape_team_data(team_num, week=1):
+def scrape_team_data(team_num, week=1):  # Changed function signature to accept team_num
     url = f"https://football.fantasysports.yahoo.com/f1/723352/{team_num}/team?&week={week}&stat1=S&stat2=W"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -56,9 +56,8 @@ def scrape_team_data(team_num, week=1):
                 if proj_span:
                     return {
                         'team_name': team_name,
-                        'team_number': teateam_num,
-                        f'week_{week}_projected': float(proj_span.text.strip()),
-                        'current_week': current_week
+                        'team_number': team_num,
+                        f'week_{week}_projected': float(proj_span.text.strip())
                     }
             time.sleep(1)
         except Exception as e:
@@ -70,7 +69,6 @@ def scrape_team_data(team_num, week=1):
 def update_cache_in_background():
     teams_data = []
     seen_teams = set()
-    current_week = "Unknown Week"
     
     for team_num in range(1, 17):
         # Get Week 1 data
@@ -80,22 +78,22 @@ def update_cache_in_background():
             week2_data = scrape_team_data(team_num, week=2)
             if week2_data:
                 team_data['week_2_projected'] = week2_data['week_2_projected']
-                # Calculate total
-                team_data['total_projected'] = team_data['week_1_projected'] + team_data['week_2_projected']
                 
+            # Calculate total (use 0 for week 2 if not available)
+            week2_points = team_data.get('week_2_projected', 0)
+            team_data['total_projected'] = team_data['week_1_projected'] + week2_points
+            
             if team_data['team_name'] not in seen_teams:
                 teams_data.append(team_data)
                 seen_teams.add(team_data['team_name'])
-                current_week = team_data.get('current_week', current_week)
         time.sleep(1)
 
     if teams_data:
-        # Sort by total projected points
+        # Sort by total projected pointsnts
         teams_data.sort(key=lambda x: x.get('total_projected', 0), reverse=True)
         cache.set('teams_data', {
             'teams': teams_data,
-            'last_updated': datetime.now(pytz.timezone('US/Pacific')),
-            'current_week': current_week
+            'last_updated': datetime.now(pytz.timezone('US/Pacific'))
         }, timeout=300)  # Cache for 5 minutes
 
 def get_all_teams():
