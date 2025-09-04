@@ -74,6 +74,7 @@ def get_all_teams():
             team_data = scrape_team_data(url)
             if team_data:
                 if team_data['team_name'] not in seen_teams:
+                    team_data['team_number'] = team_num  # Store the team number
                     teams_data.append(team_data)
                     seen_teams.add(team_data['team_name'])
                     print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
@@ -113,7 +114,7 @@ def home():
                     border-collapse: collapse; 
                     width: 100%;
                     margin-top: 20px;
-                       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
                 }
                 th, td { 
                     border: 1px solid #ddd; 
@@ -142,6 +143,14 @@ def home():
                     color: #333;
                     text-align: center;
                 }
+                a {
+                    color: #2196F3;
+                    text-decoration: none;
+                }
+                a:hover {
+                    text-decoration: underline;
+                    color: #0D47A1;
+                }
             </style>
         </head>
         <body>
@@ -159,7 +168,11 @@ def home():
                 {% for team in teams %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ team.team_name }}</td>
+                    <td>
+                        <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
+                            {{ team.team_name }}
+                        </a>
+                    </td>
                     <td>{{ "%.2f"|format(team.projected_points) }}</td>
                 </tr>
                 {% endfor %}
