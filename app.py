@@ -37,8 +37,8 @@ def scrape_team_data(url):
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
         
-        # Specify the parser explicitly
-        soup = BeautifulSoup(response.text, 'lxml')
+        # Use html.parser instead of lxml
+        soup = BeautifulSoup(response.text, 'html.parser')
         
         team_name = get_team_name(soup)
         
