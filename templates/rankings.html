@@ -213,17 +213,21 @@
         <tr>
             <th>Rank</th>
             <th>Team Name</th>
-            <th>Projected Points</th>
+            <th>Week 1 Projected</th>
+            <th>Week 2 Projected</th>
+            <th>Total Projected</th>
         </tr>
         {% for team in teams %}
         <tr>
             <td>{{ loop.index }}</td>
             <td>
-                <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
+                <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}/team?&week=1&stat1=S&stat2=W" target="_blank">
                     {{ team.team_name }}
                 </a>
             </td>
-            <td>{{ "%.2f"|format(team.projected_points) }}</td>
+            <td>{{ "%.2f"|format(team.week_1_projected) }}</td>
+            <td>{{ "%.2f"|format(team.week_2_projected) }}</td>
+            <td>{{ "%.2f"|format(team.total_projected) }}</td>
         </tr>
         {% endfor %}
     </table>
