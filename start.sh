@@ -1,2 +1,2 @@
 #!/bin/bash
-gunicorn app:app --timeout 120 --workers 1 --threads 2
+gunicorn app:app --timeout 120 --workers 1 --threads 4
