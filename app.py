@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template 
 from bs4 import BeautifulSoup
 import requests
 import time
@@ -98,91 +98,9 @@ def home():
         cached_data = cache.get('teams_data')
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
         
-        template = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Fantasy Football Projections</title>
-            <meta http-equiv="refresh" content="60">
-            <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 0 auto;
-                    max-width: 800px;
-                    padding: 20px;
-                }
-                table { 
-                    border-collapse: collapse; 
-                    width: 100%;
-                    margin-top: 20px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                }
-                th, td { 
-                    border: 1px solid #ddd; 
-                    padding: 12px; 
-                    text-align: left; 
-                }
-                th { 
-                    background-color: #4CAF50; 
-                    color: white; 
-                }
-                tr:nth-child(even) { 
-                    background-color: #f2f2f2; 
-                }
-                tr:hover {
-                    background-color: #ddd;
-                }
-                .last-updated {
-                    color: #666;
-                    font-style: italic;
-                    margin-bottom: 20px;
-                    padding: 10px;
-                    background-color: #f9f9f9;
-                    border-radius: 4px;
-                }
-                h1 {
-                    color: #333;
-                    text-align: center;
-                }
-                a {
-                    color: #2196F3;
-                    text-decoration: none;
-                }
-                a:hover {
-                    text-decoration: underline;
-                    color: #0D47A1;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Fantasy Football Projected Points</h1>
-            <div class="last-updated">
-                Last updated: {{ last_updated.strftime('%I:%M %p PT on %B %d, %Y') }}
-            </div>
-            
-            <table>
-                <tr>
-                    <th>Rank</th>
-                    <th>Team Name</th>
-                    <th>Projected Points</th>
-                </tr>
-                {% for team in teams %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>
-                        <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
-                            {{ team.team_name }}
-                        </a>
-                    </td>
-                    <td>{{ "%.2f"|format(team.projected_points) }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </body>
-        </html>
-        """
-        
-        return render_template_string(template, teams=teams_data, last_updated=last_updated)
+        return render_template('rankings.html',  # Change this line
+                             teams=teams_data, 
+                             last_updated=last_updated)
             
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
