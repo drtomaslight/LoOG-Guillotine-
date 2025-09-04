@@ -37,7 +37,9 @@ def scrape_team_data(url):
         response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
         
-        soup = BeautifulSoup(response.text, 'html.parparser')
+        # Specify the parser explicitly
+        soup = BeautifulSoup(response.text, 'lxml')
+        
         team_name = get_team_name(soup)
         
         # Get current week
