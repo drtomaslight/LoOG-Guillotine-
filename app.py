@@ -44,32 +44,84 @@ def scrape_team_data(team_num, week=1):
     }
 
     logger.info(f"Scraping team {team_num} for week {week}")
+    
     for attempt in range(3):
         try:
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
-            team_name = get_team_name(soup)
+            
+            # Try different methods to find team name
+            team_name = None
+            team_name_span = soup.find('span', class_='team-name')
+            if team_name_span:
+                team_name = clean_team_name(team_name_span.text)
+            
+            if not team_name:
+                team_header = soup.find('div', class_='ysf-team-header')
+                if team_header:
+                    team_name = clean_team_name(team_header.text)
+            
             logger.info(f"Found team name: {team_name}")
             
+            # Try different methods to find projected points
+            proj_points = None
+            
+            # Method 1: Look for team-card-stats
             proj_div = soup.find('div', class_='team-card-stats')
-            if proj_div and 'Proj Points' in proj_div.text:
+            if proj_div:
                 proj_span = proj_div.find('span', class_='Fw-b')
                 if proj_span:
-                    points = float(proj_span.text.strip())
-                    logger.info(f"Found points for team {team_num}, week {week}: {points}")
-                    return {
-                        'team_name': team_name,
-                        'team_number': team_num,
-                        f'week_{week}_projected': points
-                    }
-            logger.warning(f"No projection data found for team {team_num}, week {week}")
+                    try:
+                        proj_points = float(proj_span.text.strip())
+                        logger.info(f"Found points (method 1): {proj_points}")
+                    except:
+                        pass
+
+            # Method 2: Look for projected points in table
+            if not proj_points:
+                proj_cell = soup.find('td', string=lambda x: x and 'Projected' in x)
+                if proj_cell:
+                    next_cell = proj_cell.find_next('td')
+                    if next_cell:
+                        try:
+                            proj_points = float(next_cell.text.strip())
+                            logger.info(f"Found points (method 2): {proj_points}")
+                        except:
+                            pass
+
+            # Method 3: Look for specific layout
+            if not proj_points:
+                points_div = soup.find('div', class_='ysf-proj-points')
+                if points_div:
+                    try:
+                        proj_points = float(points_div.text.strip())
+                        logger.info(f"Found points (method 3): {proj_points}")
+                    except:
+                        pass
+
+            if team_name and proj_points:
+                return {
+                    'team_name': team_name,
+                    'team_number': team_num,
+                    f'week_{week}_projected': proj_points
+                }
+
+            # Save HTML for debugging
+            if attempt == 0:
+                with open(f'team_{team_num}_week_{week}.html', 'w', encoding='utf-8') as f:
+                    f.write(response.text)
+                logger.info(f"Saved HTML for team {team_num} week {week}")
+
+            logger.warning(f"Could not findind {'team name' if not team_name else 'projection'} for team {team_num}, week {week}")
             time.sleep(1)
+            
         except Exception as e:
             logger.error(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
             if attempt < 2:
                 time.sleep(1)
+    
     return None
 
 def update_cache_in_background():
@@ -77,15 +129,17 @@ def update_cache_in_background():
     teams_data = []
     seen_teams = set()
     
+    successful_scrapes = 0
+    
     for team_num in range(1, 17):
         # Get Week 1 data
         team_data = scrape_team_data(team_num, week=1)
         if team_data:
+            successful_scrapes += 1
             # Get Week 2 data
             week2_data = scrape_team_data(team_num, week=2)
             if week2_data:
                 team_data['week_2_projected'] = week2_data['week_2_projected']
-                logger.info(f"Added week 2 data for team {team_num}")
             
             # Calculate total (use 0 for week 2 if not available)
             week2_points = team_data.get('week_2_projected', 0)
@@ -94,19 +148,19 @@ def update_cache_in_background():
             if team_data['team_name'] not in seen_teams:
                 teams_data.append(team_data)
                 seen_teams.add(team_data['team_name'])
-                logger.info(f"Added team to dataset: {team_data['team_name']}")
+                logger.info(f"Added team to dataset: {team_data}")
         time.sleep(1)
 
     if teams_data:
-        logger.info(f"Found {len(teams_data)} teams, updating cache...")
+        logger.info(f"Successfully scraped {successful_scrapes} teams")
         teams_data.sort(key=lambda x: x.get('total_projected', 0), reverse=True)
         cache.set('teams_data', {
             'teams': teams_data,
             'last_updated': datetime.now(pytz.timezone('US/Pacific'))
         }, timeout=300)
-        logger.info("Cache update complete")
+        logger.info("Cache updated")
     else:
-        logger.warning("No teams data found to cache")
+        logger.error("No teams were successfully scraped!")
 
 def get_all_teams():
     cached = cache.get('teams_data')
