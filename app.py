@@ -29,7 +29,7 @@ def get_team_name(soup):
         return clean_team_name(name)
     return "Unknown Team"
 
-def scrape_team_data(url, retries=3):
+def scrape_team_data(url, retries=3):  # Keep original parameter
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -37,7 +37,7 @@ def scrape_team_data(url, retries=3):
         'Connection': 'keep-alive',
     }
 
-    for attempt in range(retries):
+    for attempt in range(retries):  # Changed from retretries to retries
         try:
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
@@ -46,7 +46,7 @@ def scrape_team_data(url, retries=3):
             
             team_name = get_team_name(soup)
             
-            week_element = soup.finfind('span', {'id': 'selectlist_nav'})
+            week_element = soup.find('span', {'id': 'selectlist_nav'})  # Fixed typo in find
             current_week = week_element['title'] if week_element else "Unknown Week"
             
             proj_div = soup.find('div', class_='team-card-stats')
@@ -61,7 +61,7 @@ def scrape_team_data(url, retries=3):
             time.sleep(1)
         except Exception as e:
             print(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
-            if attempt < retretries - 1:
+            if attempt < retries - 1:  # Fixed from retretries to retries
                 time.sleep(1)
     return None
 
