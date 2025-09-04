@@ -81,6 +81,12 @@
             text-align: center;
         }
 
+        h2.current-week {
+            color: var(--header-bg);
+            margin: 10px 0;
+            font-size: 1.5em;
+        }
+
         a {
             color: var(--link-color);
             text-decoration: none;
@@ -184,6 +190,7 @@
     </div>
 
     <h1>League of Ordinary Gentlemen Guillotine Projections</h1>
+    <h2 class="current-week">{{ current_week }}</h2>
     <div class="last-updated">
         Last updated: {{ last_updated.strftime('%I:%M %p PT on %B %d, %Y') }}
     </div>
