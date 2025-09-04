@@ -7,6 +7,7 @@ from datetime import datetime
 import pytz
 from cachelib.file import FileSystemCache
 import os
+import threading
 
 app = Flask(__name__)
 
@@ -45,8 +46,7 @@ def scrape_team_data(url, retries=3):
             
             team_name = get_team_name(soup)
             
-            # Get current week
-            week_element = soup.find('span', {'id': 'selectlist_nav'})
+            week_element = soup.finfind('span', {'id': 'selectlist_nav'})
             current_week = week_element['title'] if week_element else "Unknown Week"
             
             proj_div = soup.find('div', class_='team-card-stats')
@@ -58,24 +58,14 @@ def scrape_team_data(url, retries=3):
                         'projected_points': float(proj_span.text.strip()),
                         'current_week': current_week
                     }
-            
-            # If we get here, we didn't find the data we need
-            print(f"Attempt {attempt + 1}: Could not find projection data for {url}")
-            time.sleep(2)  # Wait before retry
-            
+            time.sleep(1)
         except Exception as e:
             print(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
-            if attempt < retries - 1:  # Don't sleep on last attempt
-                time.sleep(2)
+            if attempt < retretries - 1:
+                time.sleep(1)
     return None
 
-def get_all_teams():
-    # Try to get data from cache
-    cached = cache.get('teams_data')
-    if cached:
-        return cached['teams']
-    
-    print("Cache miss or expired, scraping new data...")
+def update_cache_in_background():
     base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
     teams_data = []
     seen_teams = set()
@@ -83,8 +73,6 @@ def get_all_teams():
     
     for team_num in range(1, 17):
         url = f"{base_url}{team_num}"
-        print(f"Scraping team {team_num}...")
-        
         team_data = scrape_team_data(url)
         if team_data:
             if team_data['team_name'] not in seen_teams:
@@ -92,20 +80,33 @@ def get_all_teams():
                 teams_data.append(team_data)
                 seen_teams.add(team_data['team_name'])
                 current_week = team_data.get('current_week', current_week)
-                print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
-        
-        time.sleep(2)  # Increased delay between teams
+        time.sleep(1)
 
     if teams_data:
         teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
-        # Store in cache for 1 minute
         cache.set('teams_data', {
             'teams': teams_data,
             'last_updated': datetime.now(pytz.timezone('US/Pacific')),
             'current_week': current_week
-        }, timeout=60)
-        
-    return teams_data
+        }, timeout=300)  # Cache for 5 minutes
+
+def get_all_teams():
+    # First, try to get cached data
+    cached = cache.get('teams_data')
+    if cached:
+        # Start background update if cache is more than 4 minutes old
+        age = (datetime.now(pytz.timezone('US/Pacific')) - cached['last_updated']).seconds
+        if age > 240:  # 4 minutes
+            thread = threading.Thread(target=update_cache_in_background)
+            thread.daemon = True
+            thread.start()
+        return cached['teams']
+    
+    # If no cache, do a blocking update
+    print("Cache miss, scraping new data...")
+    update_cache_in_background()
+    cached = cache.get('teams_data')
+    return cached['teams'] if cached else []
 
 @app.route('/health')
 def health():
@@ -126,6 +127,13 @@ def home():
             
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
+
+# Start initial cache population
+@app.before_first_request
+def initialize_cache():
+    thread = threading.Thread(target=update_cache_in_background)
+    thread.daemon = True
+    thread.start()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
