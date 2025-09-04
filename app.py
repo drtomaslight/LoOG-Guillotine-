@@ -6,15 +6,16 @@ import re
 from datetime import datetime
 import pytz
 import os
-from functools import lru_cache
+from threading import Lock
 
 app = Flask(__name__)
 
-# Global cache
+# Global cache and lock
 cached_data = {
     'teams': None,
     'last_updated': None
 }
+cache_lock = Lock()
 
 def clean_team_name(name):
     return re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
@@ -51,31 +52,40 @@ def scrape_team_data(url):
     return None
 
 def get_all_teams():
-    # If we have cached data less than 5 minutes old, use it
-    if cached_data['teams'] and cached_data['last_updated']:
-        age = (datetime.now(pytz.timezone('US/Pacific')) - cached_data['last_updated']).seconds
-        if age < 300:  # 5 minutes
-            return cached_data['teams']
-
-    base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
-    teams_data = []
+    global cached_data
     
-    for team_num in range(1, 17):
-        url = f"{base_url}{team_num}"
-        print(f"Scraping team {team_num}...")
+    # Check if we have fresh cached data
+    with cache_lock:
+        if cached_data['teams'] and cached_data['last_updated']:
+            age = (datetime.now(pytz.timezone('US/Pacific')) - cached_data['last_updated']).seconds
+            if age < 300:  # 5 minutes
+                return cached_data['teams']
         
-        team_data = scrape_team_data(url)
-        if team_data:
-            teams_data.append(team_data)
-            print(f"Found: {team_data['team_name']} - {team_data['projected_points']}")
-        time.sleep(0.5)  # Reduced delay
+        # If we get here, we need to scrape new data
+        print("Cache miss or expired, scraping new data...")
+        base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
+        teams_data = []
+        seen_teams = set()  # Track teams we've already scraped
+        
+        for team_num in range(1, 17):
+            url = f"{base_url}{team_num}"
+            print(f"Scraping team {team_num}...")
+            
+            team_data = scrape_team_data(url)
+            if team_data:
+                # Only add team if we haven't seen it before
+                if team_data['team_name'] not in seen_teams:
+                    teams_data.append(team_data)
+                    seen_teams.add(team_data['team_name'])
+                    print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
+            time.sleep(0.5)
 
-    if teams_data:
-        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
-        cached_data['teams'] = teams_data
-        cached_data['last_updated'] = datetime.now(pytz.timezone('US/Pacific'))
-        
-    return teams_data
+        if teams_data:
+            teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+            cached_data['teams'] = teams_data
+            cached_data['last_updated'] = datetime.now(pytz.timezone('US/Pacific'))
+            
+        return teams_data
 
 @app.route('/')
 def home():
