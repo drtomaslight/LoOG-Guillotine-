@@ -6,8 +6,15 @@ import re
 from datetime import datetime
 import pytz
 import os
+from functools import lru_cache
 
 app = Flask(__name__)
+
+# Global cache
+cached_data = {
+    'teams': None,
+    'last_updated': None
+}
 
 def clean_team_name(name):
     return re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
@@ -25,7 +32,7 @@ def scrape_team_data(url):
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=5)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -43,25 +50,38 @@ def scrape_team_data(url):
         print(f"Error scraping {url}: {e}")
     return None
 
+def get_all_teams():
+    # If we have cached data less than 5 minutes old, use it
+    if cached_data['teams'] and cached_data['last_updated']:
+        age = (datetime.now(pytz.timezone('US/Pacific')) - cached_data['last_updated']).seconds
+        if age < 300:  # 5 minutes
+            return cached_data['teams']
+
+    base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
+    teams_data = []
+    
+    for team_num in range(1, 17):
+        url = f"{base_url}{team_num}"
+        print(f"Scraping team {team_num}...")
+        
+        team_data = scrape_team_data(url)
+        if team_data:
+            teams_data.append(team_data)
+            print(f"Found: {team_data['team_name']} - {team_data['projected_points']}")
+        time.sleep(0.5)  # Reduced delay
+
+    if teams_data:
+        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+        cached_data['teams'] = teams_data
+        cached_data['last_updated'] = datetime.now(pytz.timezone('US/Pacific'))
+        
+    return teams_data
+
 @app.route('/')
 def home():
     try:
-        base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
-        teams_data = []
-        
-        # Scrape all teams
-        for team_num in range(1, 17):
-            url = f"{base_url}{team_num}"
-            print(f"Scraping team {team_num}...")
-            
-            team_data = scrape_team_data(url)
-            if team_data:
-                teams_data.append(team_data)
-                print(f"Found: {team_data['team_name']} - {team_data['projected_points']}")
-            time.sleep(1)
-        
-        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
-        last_updated = datetime.now(pytz.timezone('US/Pacific'))
+        teams_data = get_all_teams()
+        last_updated = cached_data['last_updated'] or datetime.now(pytz.timezone('US/Pacific'))
         
         template = """
         <!DOCTYPE html>
@@ -72,15 +92,15 @@ def home():
             <style>
                 body { 
                     font-family: Arial, sans-serif; 
-                    margin: 20px; 
-                    max-width: 800px;
                     margin: 0 auto;
+                    max-width: 800px;
                     padding: 20px;
                 }
                 table { 
                     border-collapse: collapse; 
                     width: 100%;
                     margin-top: 20px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
                 }
                 th, td { 
                     border: 1px solid #ddd; 
@@ -101,6 +121,9 @@ def home():
                     color: #666;
                     font-style: italic;
                     margin-bottom: 20px;
+                    padding: 10px;
+                    background-color: #f9f9f9;
+                    border-radius: 4px;
                 }
                 h1 {
                     color: #333;
