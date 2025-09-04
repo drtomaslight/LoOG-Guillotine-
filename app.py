@@ -58,14 +58,14 @@ def get_all_teams():
     with cache_lock:
         if cached_data['teams'] and cached_data['last_updated']:
             age = (datetime.now(pytz.timezone('US/Pacific')) - cached_data['last_updated']).seconds
-            if age < 300:  # 5 minutes
+            if age < 60:  # 1 minute cache
                 return cached_data['teams']
         
         # If we get here, we need to scrape new data
         print("Cache miss or expired, scraping new data...")
         base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
         teams_data = []
-        seen_teams = set()  # Track teams we've already scraped
+        seen_teams = set()
         
         for team_num in range(1, 17):
             url = f"{base_url}{team_num}"
@@ -73,7 +73,6 @@ def get_all_teams():
             
             team_data = scrape_team_data(url)
             if team_data:
-                # Only add team if we haven't seen it before
                 if team_data['team_name'] not in seen_teams:
                     teams_data.append(team_data)
                     seen_teams.add(team_data['team_name'])
@@ -87,6 +86,10 @@ def get_all_teams():
             
         return teams_data
 
+@app.route('/health')
+def health():
+    return 'OK', 200
+
 @app.route('/')
 def home():
     try:
@@ -98,7 +101,7 @@ def home():
         <html>
         <head>
             <title>Fantasy Football Projections</title>
-            <meta http-equiv="refresh" content="300">
+            <meta http-equiv="refresh" content="60">
             <style>
                 body { 
                     font-family: Arial, sans-serif; 
@@ -110,7 +113,7 @@ def home():
                     border-collapse: collapse; 
                     width: 100%;
                     margin-top: 20px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
                 }
                 th, td { 
                     border: 1px solid #ddd; 
