@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 import time
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from cachelib.file import FileSystemCache
 import os
@@ -19,6 +19,10 @@ if not os.path.exists(cache_dir):
 # Initialize cache
 cache = FileSystemCache(cache_dir)
 
+# Constants
+CACHE_TIMEOUT = 1800  # 30 minutes
+SCRAPE_INTERVAL = 1800  # 30 minutes
+
 def clean_team_name(name):
     return re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
 
@@ -29,7 +33,7 @@ def get_team_name(soup):
         return clean_team_name(name)
     return "Unknown Team"
 
-def scrape_team_data(url, retries=3):  # Keep original parameter
+def scrape_team_data(url, retries=3):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -37,7 +41,7 @@ def scrape_team_data(url, retries=3):  # Keep original parameter
         'Connection': 'keep-alive',
     }
 
-    for attempt in range(retries):  # Changed from retretries to retries
+    for attempt in range(retries):
         try:
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
@@ -46,7 +50,7 @@ def scrape_team_data(url, retries=3):  # Keep original parameter
             
             team_name = get_team_name(soup)
             
-            week_element = soup.find('span', {'id': 'selectlist_nav'})  # Fixed typo in find
+            week_element = soup.find('span', {'id': 'selectlist_nav'})
             current_week = week_element['title'] if week_element else "Unknown Week"
             
             proj_div = soup.find('div', class_='team-card-stats')
@@ -61,52 +65,49 @@ def scrape_team_data(url, retries=3):  # Keep original parameter
             time.sleep(1)
         except Exception as e:
             print(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
-            if attempt < retries - 1:  # Fixed from retretries to retries
+            if attempt < retries - 1:
                 time.sleep(1)
     return None
 
 def update_cache_in_background():
-    base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
-    teams_data = []
-    seen_teams = set()
-    current_week = "Unknown Week"
-    
-    for team_num in range(1, 17):
-        url = f"{base_url}{team_num}"
-        team_data = scrape_team_data(url)
-        if team_data:
-            if team_data['team_name'] not in seen_teams:
-                team_data['team_number'] = team_num
-                teams_data.append(team_data)
-                seen_teams.add(team_data['team_name'])
-                current_week = team_data.get('current_week', current_week)
-        time.sleep(1)
+    while True:
+        print("Starting cache update...")
+        base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
+        teams_data = []
+        seen_teams = set()
+        current_week = "Unknown Week"
+        
+        for team_num in range(1, 17):
+            url = f"{base_url}{team_num}"
+            team_data = scrape_team_data(url)
+            if team_data:
+                if team_data['team_name'] not in seen_teams:
+                    team_data['team_number'] = team_num
+                    teams_data.append(team_data)
+                    seen_teams.add(team_data['team_name'])
+                    current_week = team_data.get('current_week', current_week)
+            time.sleep(1)
 
-    if teams_data:
-        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
-        cache.set('teams_data', {
-            'teams': teams_data,
-            'last_updated': datetime.now(pytz.timezone('US/Pacific')),
-            'current_week': current_week
-        }, timeout=300)  # Cache for 5 minutes
+        if teams_data:
+            teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+            cache.set('teams_data', {
+                'teams': teams_data,
+                'last_updated': datetime.now(pytz.timezone('US/Pacific')),
+                'current_week': current_week
+            }, timeout=CACHE_TIMEOUT)
+            print("Cache updated successfully")
+        else:
+            print("No data scraped, cache not updated")
+        
+        time.sleep(SCRAPE_INTERVAL)
 
 def get_all_teams():
-    # First, try to get cached data
     cached = cache.get('teams_data')
     if cached:
-        # Start background update if cache is more than 4 minutes old
-        age = (datetime.now(pytz.timezone('US/Pacific')) - cached['last_updated']).seconds
-        if age > 240:  # 4 minutes
-            thread = threading.Thread(target=update_cache_in_background)
-            thread.daemon = True
-            thread.start()
         return cached['teams']
     
-    # If no cache, do a blocking update
-    print("Cache miss, scraping new data...")
-    update_cache_in_background()
-    cached = cache.get('teams_data')
-    return cached['teams'] if cached else []
+    print("Cache miss, waiting for data...")
+    return []
 
 @app.route('/health')
 def health():
@@ -128,7 +129,6 @@ def home():
     except Exception as e:
         return f"An error occurred: {str(e)}", 500
 
-# Start initial cache population
 @app.before_first_request
 def initialize_cache():
     thread = threading.Thread(target=update_cache_in_background)
