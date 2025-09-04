@@ -5,17 +5,18 @@ import time
 import re
 from datetime import datetime
 import pytz
+from cachelib.file import FileSystemCache
 import os
-from threading import Lock
 
 app = Flask(__name__)
 
-# Global cache and lock
-cached_data = {
-    'teams': None,
-    'last_updated': None
-}
-cache_lock = Lock()
+# Create cache directory
+cache_dir = os.path.join(os.getcwd(), 'cache')
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
+# Initialize cache
+cache = FileSystemCache(cache_dir)
 
 def clean_team_name(name):
     return re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
@@ -51,41 +52,40 @@ def scrape_team_data(url):
         print(f"Error scraping {url}: {e}")
     return None
 
+# Update get_all_teams function
 def get_all_teams():
-    global cached_data
+    # Try to get data from cache
+    cached = cache.get('teams_data')
+    if cached:
+        return cached['teams']
     
-    # Check if we have fresh cached data
-    with cache_lock:
-        if cached_data['teams'] and cached_data['last_updated']:
-            age = (datetime.now(pytz.timezone('US/Pacific')) - cached_data['last_updated']).seconds
-            if age < 60:  # 1 minute cache
-                return cached_data['teams']
+    print("Cache miss or expired, scraping new data...")
+    base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
+    teams_data = []
+    seen_teams = set()
+    
+    for team_num in range(1, 17):
+        url = f"{base_url}{team_num}"
+        print(f"Scraping team {team_num}...")
         
-        # If we get here, we need to scrape new data
-        print("Cache miss or expired, scraping new data...")
-        base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
-        teams_data = []
-        seen_teams = set()
-        
-        for team_num in range(1, 17):
-            url = f"{base_url}{team_num}"
-            print(f"Scraping team {team_num}...")
-            
-            team_data = scrape_team_data(url)
-            if team_data:
-                if team_data['team_name'] not in seen_teams:
-                    team_data['team_number'] = team_num  # Store the team number
-                    teams_data.append(team_data)
-                    seen_teams.add(team_data['team_name'])
-                    print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
-            time.sleep(0.5)
+        team_data = scrape_team_data(url)
+        if team_data:
+            if team_data['team_name'] not in seen_teams:
+                team_data['team_number'] = team_num
+                teams_data.append(team_data)
+                seen_teams.add(team_data['team_name'])
+                print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
+        time.sleep(0.5)
 
-        if teams_data:
-            teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
-            cached_data['teams'] = teams_data
-            cached_data['last_updated'] = datetime.now(pytz.timezone('US/Pacific'))
-            
-        return teams_data
+    if teams_data:
+        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+        # Store in cache for 1 minute
+        cache.set('teams_data', {
+            'teams': teams_data,
+            'last_updated': datetime.now(pytz.timezone('US/Pacific'))
+        }, timeout=60)
+        
+    return teams_data
 
 @app.route('/health')
 def health():
@@ -95,7 +95,8 @@ def health():
 def home():
     try:
         teams_data = get_all_teams()
-        last_updated = cached_data['last_updated'] or datetime.now(pytz.timezone('US/Pacific'))
+        cached_data = cache.get('teams_data')
+        last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
         
         template = """
         <!DOCTYPE html>
