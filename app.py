@@ -28,35 +28,45 @@ def get_team_name(soup):
         return clean_team_name(name)
     return "Unknown Team"
 
-def scrape_team_data(url):
+def scrape_team_data(url, retries=3):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Connection': 'keep-alive',
     }
 
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        response.raise_for_status()
-        
-        # Use html.parser instead of lxml
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        team_name = get_team_name(soup)
-        
-        # Get current week
-        week_element = soup.find('span', {'id': 'selectlist_nav'})
-        current_week = week_element['title'] if week_element else "Unknown Week"
-        
-        proj_div = soup.find('div', class_='team-card-stats')
-        if proj_div and 'Proj Points' in proj_div.text:
-            proj_span = proj_div.find('span', class_='Fw-b')
-            if proj_span:
-                return {
-                    'team_name': team_name,
-                    'projected_points': float(proj_span.text.strip()),
-                    'current_week': current_week
-                }
-    except Exception as e:
-        print(f"Error scraping {url}: {e}")
+    for attempt in range(retries):
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            team_name = get_team_name(soup)
+            
+            # Get current week
+            week_element = soup.find('span', {'id': 'selectlist_nav'})
+            current_week = week_element['title'] if week_element else "Unknown Week"
+            
+            proj_div = soup.find('div', class_='team-card-stats')
+            if proj_div and 'Proj Points' in proj_div.text:
+                proj_span = proj_div.find('span', class_='Fw-b')
+                if proj_span:
+                    return {
+                        'team_name': team_name,
+                        'projected_points': float(proj_span.text.strip()),
+                        'current_week': current_week
+                    }
+            
+            # If we get here, we didn't find the data we need
+            print(f"Attempt {attempt + 1}: Could not find projection data for {url}")
+            time.sleep(2)  # Wait before retry
+            
+        except Exception as e:
+            print(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
+            if attempt < retries - 1:  # Don't sleep on last attempt
+                time.sleep(2)
     return None
 
 def get_all_teams():
@@ -83,7 +93,8 @@ def get_all_teams():
                 seen_teams.add(team_data['team_name'])
                 current_week = team_data.get('current_week', current_week)
                 print(f"Found new team: {team_data['team_name']} - {team_data['projected_points']}")
-        time.sleep(0.5)
+        
+        time.sleep(2)  # Increased delay between teams
 
     if teams_data:
         teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
