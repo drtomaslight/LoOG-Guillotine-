@@ -1,80 +1,117 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Fantasy Football Projections</title>
-    <meta http-equiv="refresh" content="300"> <!-- Refresh page every 5 minutes -->
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        .last-updated {
-            color: #666;
-            font-style: italic;
-            margin-bottom: 20px;
-            background-color: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Fantasy Football Projected Points</h1>
-    
-    {% if last_updated %}
-    <div class="last-updated">
-        Last updated: {{ last_updated.strftime('%I:%M %p PT on %B %d, %Y') }}
-    </div>
-    {% endif %}
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Team Name</th>
-                <th>Projected Points</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for team in teams %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ team.team_name }}</td>
-                <td>{{ "%.2f"|format(team.projected_points) }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+        template = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>League of Ordinary Gentlemen Guillotine Projections</title>
+            <meta http-equiv="refresh" content="60">
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 0 auto;
+                    max-width: 800px;
+                    padding: 20px;
+                }
+                table { 
+                    border-collapse: collapse; 
+                    width: 100%;
+                    margin-top: 20px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                }
+                th, td { 
+                    border: 1px solid #ddd; 
+                    padding: 12px; 
+                    text-align: left; 
+                }
+                th { 
+                    background-color: #4CAF50; 
+                    color: white; 
+                }
+                tr:nth-child(even) { 
+                    background-color: #f2f2f2; 
+                }
+                tr:hover {
+                    background-color: #ddd;
+                }
+                .last-updated {
+                    color: #666;
+                    font-style: italic;
+                    margin-bottom: 20px;
+                    padding: 10px;
+                    background-color: #f9f9f9;
+                    border-radius: 4px;
+                }
+                h1, h2 {
+                    color: #333;
+                    text-align: center;
+                }
+                a {
+                    color: #2196F3;
+                    text-decoration: none;
+                }
+                a:hover {
+                    text-decoration: underline;
+                    color: #0D47A1;
+                }
+                .rules {
+                    background-color: #f9f9f9;
+                    padding: 15px;
+                    border-radius: 4px;
+                    margin: 20px 0;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .rules h2 {
+                    margin-top: 0;
+                    color: #4CAF50;
+                    text-align: left;
+                }
+                .rules ul {
+                    margin: 0;
+                    padding-left: 20px;
+                }
+                .rules li {
+                    margin-bottom: 8px;
+                    line-height: 1.4;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Fantasy Football Projected Points</h1>
+            <div class="last-updated">
+                Last updated: {{ last_updated.strftime('%I:%M %p PT on %B %d, %Y') }}
+            </div>
+
+            <div class="rules">
+                <h2>Immunities/Weekly Rules:</h2>
+                <ul>
+                    <li>Week 1-Week 11: Highest scoring team gets immunity the following week</li>
+                    <li>Week 1 + 2 - 1st Cut</li>
+                    <li>Week 3 + 4 - 2nd Cut</li>
+                    <li>Week 5: Bestball scoring for the week.</li>
+                    <li>Week 7: Starting TEs get 1.5x points for the week.</li>
+                    <li>Week 8: Highest scoring team thru 7 weeks gets immunity week 8 (possible to get 2 teams with immunity week 8)</li>
+                    <li>Week 10: Bestball scoring for the week</li>
+                    <li>Week 12: Starting rookies get double points for the week.</li>
+                </ul>
+            </div>
+            
+            <table>
+                <tr>
+                    <th>Rank</th>
+                    <th>Team Name</th>
+                    <th>Projected Points</th>
+                </tr>
+                {% for team in teams %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
+                            {{ team.team_name }}
+                        </a>
+                    </td>
+                    <td>{{ "%.2f"|format(team.projected_points) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </body>
+        </html>
+        """
