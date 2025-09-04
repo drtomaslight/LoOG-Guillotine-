@@ -73,31 +73,38 @@ def update_cache_in_background():
     while True:
         print("Starting cache update...")
         base_url = 'https://football.fantasysports.yahoo.com/f1/723352/'
-        teams_data = []
+        new_teams_data = []  # Temporary list for new data
         seen_teams = set()
         current_week = "Unknown Week"
+        scrape_success = True  # Flag to track if all scraping was successful
         
+        # Collect all team data
         for team_num in range(1, 17):
             url = f"{base_url}{team_num}"
             team_data = scrape_team_data(url)
             if team_data:
                 if team_data['team_name'] not in seen_teams:
                     team_data['team_number'] = team_num
-                    teams_data.append(team_data)
+                    new_teams_data.append(team_data)
                     seen_teams.add(team_data['team_name'])
                     current_week = team_data.get('current_week', current_week)
+            else:
+                print(f"Failed to get data for team {team_num}")
+                scrape_success = False
+                break  # Stop if any team fails
             time.sleep(1)
 
-        if teams_data:
-            teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+        # Only update cache if we successfully got all teams
+        if scrape_success and len(new_teams_data) == 16:
+            new_teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
             cache.set('teams_data', {
-                'teams': teams_data,
+                'teams': new_teams_data,
                 'last_updated': datetime.now(pytz.timezone('US/Pacific')),
                 'current_week': current_week
             }, timeout=CACHE_TIMEOUT)
-            print("Cache updated successfully")
+            print(f"Cache updated successfully with {len(new_teams_data)} teams")
         else:
-            print("No data scraped, cache not updated")
+            print(f"Cache update failed. Got {len(new_teams_data)} teams, expected 16")
         
         time.sleep(SCRAPE_INTERVAL)
 
@@ -118,6 +125,10 @@ def home():
     try:
         teams_data = get_all_teams()
         cached_data = cache.get('teams_data')
+        
+        if not teams_data:
+            return "Data is being collected. Please check back in a few minutes.", 503
+            
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
         current_week = cached_data.get('current_week', 'Unknown Week') if cached_data else 'Unknown Week'
         
