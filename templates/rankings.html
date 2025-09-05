@@ -16,6 +16,40 @@
             --link-hover: #0D47A1;
             --rules-bg: #f9f9f9;
         }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .current-points {
+            font-weight: bold;
+            color: #2196F3;  /* Blue color for current points */
+        }
+        
+        /* Dark mode adjustments */
+        [data-theme="dark"] .progress-bar-container {
+            background-color: #444;
+        }
+        
+        [data-theme="dark"] .progress-bar {
+            background-color: #66bb6a;
+        }
+        
+        [data-theme="dark"] .current-points {
+            color: #64b5f6;
+        }
+        
         .projected-points {
             font-weight: bold;
         }
@@ -263,7 +297,9 @@
         <tr>
             <th>Rank</th>
             <th>Team Name</th>
+            <th>Current Points</th>
             <th>Projected Points</th>
+            <th>Progress</th>
         </tr>
         {% for team in teams %}
         <tr>
@@ -273,8 +309,16 @@
                     {{ team.team_name }}
                 </a>
             </td>
+            <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
             <td class="projected-points {{ team.color_class }}">
                 {{ "%.2f"|format(team.projected_points) }}
+            </td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ team.progress_percentage }}%;">
+                        {{ "%.2f"|format(team.progress_percentage) }}%
+                    </div>
+                </div>
             </td>
         </tr>
         {% endfor %}
