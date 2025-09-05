@@ -41,17 +41,28 @@ def scrape_team_data(url=None):
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Find all team name links
+            # Find all team name links that match the exact pattern
             teams_data = []
-            team_links = soup.find_all('a', href=lambda x: x and '/f1/723352/' in x)
+            team_links = soup.find_all('a', href=lambda x: x and x.strip('/').split('/')[-1].isdigit())
+            
+            seen_numbers = set()  # Track seen team numbers
             
             for team_link in team_links:
                 try:
-                    # Get team name from link
-                    team_name = team_link.text.strip()
-                    
                     # Get team number from href
-                    team_number = int(team_link['href'].split('/')[-1])
+                    href = team_link['href']
+                    team_number = int(href.strip('/').split('/')[-1])
+                    
+                    # Skip if we've already processed this team number
+                    if team_number in seen_numbers or team_number > 16:
+                        continue
+                        
+                    seen_numbers.add(team_number)
+                    
+                    # Get team name
+                    team_name = team_link.text.strip()
+                    if not team_name:  # Skip empty team names
+                        continue
                     
                     # Find parent row
                     row = team_link.find_parent('tr')
@@ -59,21 +70,26 @@ def scrape_team_data(url=None):
                         # Find projected points cell
                         proj_cell = row.find('td', class_='Ta-end Va-mid Fz-xs')
                         if proj_cell:
-                            proj_points = float(proj_cell.text.strip())
-                            
-                            teams_data.append({
-                                'team_name': team_name,
-                                'team_number': team_number,
-                                'projected_points': proj_points
-                            })
-                            print(f"Found team: {team_name} (#{team_number}) - {proj_points}")
+                            try:
+                                proj_points = float(proj_cell.text.strip())
+                                
+                                teams_data.append({
+                                    'team_name': team_name,
+                                    'team_number': team_number,
+                                    'projected_points':s': proj_points
+                                })
+                                print(f"Found team: {team_name} (#{team_number}) - {proj_points}")
+                            except ValueError:
+                                print(f"Invalid projection value for team {team_number}")
+                                continue
                 except Exception as e:
-                    print(f"Error processing team: {e}")
+                    print(f"Error processing team link: {e}")
                     continue
             
-            if teams_data:
+            if len(teams_data) == 16:  # Only return if we have exactly 16 teams
                 return teams_data
                 
+            print(f"Found {len(teams_data)} teams, expected 16")
             time.sleep(1)
             
         except Exception as e:
@@ -99,6 +115,7 @@ def update_cache_in_background():
             print(f"Cache update failed. Got {len(teams_data) if teams_data else 0} teams, expected 16")
         
         time.sleep(SCRAPE_INTERVAL)
+
 
 def get_all_teams():
     cached = cache.get('teams_data')
