@@ -1,3 +1,30 @@
+from flask import Flask, render_template 
+from bs4 import BeautifulSoup
+import requests
+import time
+import re
+from datetime import datetime
+import pytz
+from cachelib.file import FileSystemCache
+import os
+import threading
+
+# Create Flask application
+application = Flask(__name__)
+app = application  # This line is important for Gunicorn
+
+# Create cache directory
+cache_dir = os.path.join(os.getcwd(), 'cache')
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
+# Initialize cache
+cache = FileSystemCache(cache_dir)
+
+# Constants
+CACHE_TIMEOUT = 1800  # 30 minutes
+SCRAPE_INTERVAL = 1800  # 30 minutes
+
 def scrape_team_data(url=None):
     url = 'https://football.fantasysports.yahoo.com/f1/723352'
     headers = {
@@ -34,7 +61,7 @@ def scrape_team_data(url=None):
                         if proj_cell:
                             proj_points = float(proj_cell.text.strip())
                             
-                            teams_data.ap.append({
+                            teams_data.append({
                                 'team_name': team_name,
                                 'team_number': team_number,
                                 'projected_points': proj_points
@@ -72,3 +99,44 @@ def update_cache_in_background():
             print(f"Cache update failed. Got {len(teams_data) if teams_data else 0} teams, expected 16")
         
         time.sleep(SCRAPE_INTERVAL)
+
+def get_all_teams():
+    cached = cache.get('teams_data')
+    if cached:
+        return cached['teams']
+    
+    print("Cache miss, waiting for data...")
+    return []
+
+@app.route('/health')
+def health():
+    return 'OK', 200
+
+@app.route('/')
+def home():
+    try:
+        teams_data = get_all_teams()
+        cached_data = cache.get('teams_data')
+        
+        if not teams_data:
+            return "Data is being collected. Please check back in a few minutes.", 503
+            
+        last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
+        
+        return render_template('rankings.html',
+                             teams=teams_data, 
+                             last_updated=last_updated)
+            
+    except Exception as e:
+        return f"An error occurred: {str(e)}", 500
+
+@app.before_first_request
+def initialize_cache():
+    thread = threading.Thread(target=update_cache_in_background)
+    thread.daemon = True
+    thread.start()
+
+# This is important for Gunicorn
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
