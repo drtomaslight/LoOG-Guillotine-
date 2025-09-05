@@ -33,7 +33,6 @@ def scrape_team_data(url=None):
         'Accept-Language': 'en-US,en;q=0.5',
         'Connection': 'keep-alive',
     }
-
     try:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
@@ -56,23 +55,31 @@ def scrape_team_data(url=None):
                             if not team_link:
                                 continue
                                 
-                            # Extract team number from href
                             team_href = team_link['href']
                             team_number = int(team_href.strip('/').split('/')[-1])
                             
                             team_name = cells[2].text.strip()
-                            projected = float(cells[3].text.strip())
+                            proj_cell = cells[3]
+                            projected = float(proj_cell.text.strip())
+                            
+                            # Get the color class
+                            color_class = ''
+                            if 'F-positive' in proj_cell.get('class', []):
+                                color_class = 'F-positive'
+                            elif 'F-negative' in proj_cell.get('class', []):
+                                color_class = 'F-negative'
                             
                             teams_data.append({
                                 'team_name': team_name,
-                                'team_number': team_number,  # Using number from URL
-                                'projected_points': projected
+                                'team_number': team_number,
+                                'projected_points': projected,
+                                'color_class': color_class
                             })
-                            print(f"Found team: {team_name} (#{team_number}) - {projected}")
+                            print(f"Found team: {team_name} (#{team_number}) - {projected} [{color_class}]")
                         except (ValueError, IndexError) as e:
                             print(f"Error processing row: {e}")
                             continue
-                
+                            
                 if len(teams_data) == 16:
                     return teams_data
                 
@@ -82,7 +89,7 @@ def scrape_team_data(url=None):
     except Exception as e:
         print(f"Error scraping {url}: {e}")
         return None
-
+        
 def update_cache_in_background():
     while True:
         print("Starting cache update...")
