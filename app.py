@@ -22,7 +22,7 @@ if not os.path.exists(cache_dir):
 cache = FileSystemCache(cache_dir)
 
 # Constants
-CACHE_TIMEOUT = 1800  # 30 minutes
+CACHE_TIMEOUT = 2000  # 30 minutes
 SCRAPE_INTERVAL = 1800  # 30 minutes
 
 def scrape_team_data(url=None):
@@ -34,61 +34,46 @@ def scrape_team_data(url=None):
         'Connection': 'keep-alive',
     }
 
-    for attempt in range(3):
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            teams_data = []
-            team_links = soup.find_all('a', href=lambda x: x and x.strip('/').split('/')[-1].isdigit())
-            
-            seen_numbers = set()
-            
-            for team_link in team_links:
-                try:
-                    href = team_link['href']
-                    team_number = int(href.strip('/').split('/')[-1])
-                    
-                    if team_number in seen_numbers or team_number > 16:
-                        continue
-                        
-                    seen_numbers.add(team_number)
-                    team_name = team_link.text.strip()
-                    
-                    if not team_name:
-                        continue
-                    
-                    row = team_link.find_parent('tr')
-                    if row:
-                        proj_cell = row.find('td', class_='Ta-end Va-mid Fz-xs')
-                        if proj_cell:
-                            try:
-                                proj_points = float(proj_cell.text.strip())
-                                teams_data.append({
-                                    'team_name': team_name,
-                                    'team_number': team_number,
-                                    'projected_points': proj_points
-                                })
-                                print(f"Found team: {team_name} (#{team_number}) - {proj_points}")
-                            except ValueError:
-                                continue
-                except Exception as e:
-                    print(f"Error processing team link: {e}")
-                    continue
-            
-            if len(teams_data) == 16:
-                return teams_data
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        teams_data = []
+        
+        # Find the correct table
+        tables = soup.find_all('table')
+        for table in tables:
+            headers = [th.text.strip() for th in table.find_all('th')]
+            if 'Week Rank' in headers:
+                # Process each row
+                for row in table.find_all('tr')[1:]:  # Skip header row
+                    cells = row.find_all('td')
+                    if len(cells) >= 4:
+                        try:
+                            rank = int(cells[0].text.strip())
+                            team_name = cells[2].text.strip()
+                            projected = float(cells[3].text.strip())
+                            
+                            teams_data.append({
+                                'team_name': team_name,
+                                'team_number': rank,  # Using rank as team number
+                                'projected_points': projected
+                            })
+                            print(f"Found team: {team_name} (#{rank}) - {projected}")
+                        except (ValueError, IndexError) as e:
+                            print(f"Error processing row: {e}")
+                            continue
                 
-            print(f"Found {len(teams_data)} teams, expected 16")
-            time.sleep(1)
+                if len(teams_data) == 16:
+                    return teams_data
+                
+        print(f"Found {len(teams_data)} teams")
+        return teams_data if teams_data else None
             
-        except Exception as e:
-            print(f"Attempt {attempt + 1}: Error scraping {url}: {e}")
-            if attempt < 2:
-                time.sleep(1)
-    return None
+    except Exception as e:
+        print(f"Error scraping {url}: {e}")
+        return None
 
 def update_cache_in_background():
     while True:
