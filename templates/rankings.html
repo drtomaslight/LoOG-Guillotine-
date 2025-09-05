@@ -20,21 +20,20 @@
             font-weight: bold;
         }
         
-        .projected-points.positive {
-            color: #03a103;  /* Yahoo's green */
+        .F-positive {
+            color: #03a103 !important;
         }
         
-        .projected-points.negative {
-            color: #f00;  /* Yahoo's red */
+        .F-negative {
+            color: #f00 !important;
         }
         
-        /* Dark mode adjustments */
-        [data-theme="dark"] .projected-points.positive {
-            color: #00c500;  /* Brighter green for dark mode */
+        [data-theme="dark"] .F-positive {
+            color: #00c500 !important;
         }
         
-        [data-theme="dark"] .projected-points.negative {
-            color: #ff4040;  /* Lighter red for dark mode */
+        [data-theme="dark"] .F-negative {
+            color: #ff4040 !important;
         }
         .week-title {
             color: var(--header-bg);
@@ -274,7 +273,7 @@
                     {{ team.team_name }}
                 </a>
             </td>
-            <td class="projected-points {% if team.projected_points > 100 %}positive{% elif team.projected_points < 90 %}negative{% endif %}">
+            <td class="projected-points {{ team.color_class }}">
                 {{ "%.2f"|format(team.projected_points) }}
             </td>
         </tr>
