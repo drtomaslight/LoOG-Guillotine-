@@ -105,9 +105,9 @@ def is_game_time():
     now = datetime.now(pacific)
     
     # First, check if it's Thursday, Sunday, or Monday
-    if now.weekday() in [3, 6, 0]:  # 3=Thursday, 6=Sunday, 0=Monday
+    if now.weekday() in [3, 4, 6, 0]:  # 3=Thursday, 6=Sunday, 0=Monday
         # For Thursday and Monday games
-        if now.weekday() in [0, 3]:  # Monday or Thursday
+        if now.weekday() in [0, 3, 4]:  # Monday or Thursday
             # 5:15 PM to 8:30 PM PT
             return (now.hour == 17 and now.minute >= 15) or \
                    (17 < now.hour < 20) or \
