@@ -62,6 +62,13 @@ def scrape_team_data(url=None):
                             proj_cell = cells[3]
                             projected = float(proj_cell.text.strip())
                             
+                            # Get current points from the fourth column
+                            current_points = float(cells[4].text.strip()) if cells[4].text.strip() != '' else 0.0
+                            
+                            # Calculate progress percentage
+                            progress_percentage = (current_points / projected * 100) if projected > 0 else 0
+                            progress_percentage = min(100, progress_percentage)  # Cap at 100%
+                            
                             # Get the color class
                             color_class = ''
                             if 'F-positive' in proj_cell.get('class', []):
@@ -73,9 +80,11 @@ def scrape_team_data(url=None):
                                 'team_name': team_name,
                                 'team_number': team_number,
                                 'projected_points': projected,
+                                'current_points': current_points,
+                                'progress_percentage': progress_percentage,
                                 'color_class': color_class
                             })
-                            print(f"Found team: {team_name} (#{team_number}) - {projected} [{color_class}]")
+                            print(f"Found team: {team_name} (#{team_number}) - Projected: {projected}, Current: {current_points}, Progress: {progress_percentage:.2f}% [{color_class}]")
                         except (ValueError, IndexError) as e:
                             print(f"Error processing row: {e}")
                             continue
