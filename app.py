@@ -51,16 +51,24 @@ def scrape_team_data(url=None):
                     cells = row.find_all('td')
                     if len(cells) >= 4:
                         try:
-                            rank = int(cells[0].text.strip())
+                            # Get team number from the link
+                            team_link = cells[2].find('a', href=True)
+                            if not team_link:
+                                continue
+                                
+                            # Extract team number from href
+                            team_href = team_link['href']
+                            team_number = int(team_href.strip('/').split('/')[-1])
+                            
                             team_name = cells[2].text.strip()
                             projected = float(cells[3].text.strip())
                             
                             teams_data.append({
                                 'team_name': team_name,
-                                'team_number': rank,  # Using rank as team number
+                                'team_number': team_number,  # Using number from URL
                                 'projected_points': projected
                             })
-                            print(f"Found team: {team_name} (#{rank}) - {projected}")
+                            print(f"Found team: {team_name} (#{team_number}) - {projected}")
                         except (ValueError, IndexError) as e:
                             print(f"Error processing row: {e}")
                             continue
