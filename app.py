@@ -22,7 +22,7 @@ if not os.path.exists(cache_dir):
 cache = FileSystemCache(cache_dir)
 
 # Constants
-CACHE_TIMEOUT = 2000  # 30 minutes
+CACHE_TIMEOUT = 4000  # 30 minutes
 SCRAPE_INTERVAL = 1800  # 30 minutes
 
 def scrape_team_data(url=None):
@@ -90,9 +90,34 @@ def scrape_team_data(url=None):
         print(f"Error scraping {url}: {e}")
         return None
         
+def is_game_time():
+    """Check if there's likely an NFL game on"""
+    pacific = pytz.timezone('US/Pacific')
+    now = datetime.now(pacific)
+    
+    # First, check if it's Thursday, Sunday, or Monday
+    if now.weekday() in [3, 6, 0]:  # 3=Thursday, 6=Sunday, 0=Monday
+        # For Thursday and Monday games
+        if now.weekday() in [0, 3]:  # Monday or Thursday
+            # 5:15 PM to 8:30 PM PT
+            return (now.hour == 17 and now.minute >= 15) or \
+                   (17 < now.hour < 20) or \
+                   (now.hour == 20 and now.minute <= 30)
+        
+        # For Sunday games
+        if now.weekday() == 6:  # Sunday
+            # 10:00 AM to 8:30 PM PT
+            return (now.hour > 10 and now.hour < 20) or \
+                   (now.hour == 10 and now.minute >= 0) or \
+                   (now.hour == 20 and now.minute <= 30)
+            
+    return False
+
 def update_cache_in_background():
     while True:
         print("Starting cache update...")
+        pacific_time = datetime.now(pytz.timezone('US/Pacific'))
+        print(f"Current time (PT): {pacific_time.strftime('%I:%M %p')}")
         
         teams_data = scrape_team_data()
         
@@ -106,7 +131,18 @@ def update_cache_in_background():
         else:
             print(f"Cache update failed. Got {len(teams_data) if teams_data else 0} teams, expected 16")
         
-        time.sleep(SCRAPE_INTERVAL)
+        # Determine next update interval
+        if is_game_time():
+            sleep_time = 300  # 5 minutes
+            print("Game time window active (TNF/SNF/MNF), next update in 5 minutes")
+            print(f"Next update at: {(pacific_time + timedelta(seconds=300)).strftime('%I:%M %p PT')}")
+        else:
+            sleep_time = 3600  # 1 hour
+            print("Outside game window, next update in 1 hour")
+            print(f"Next update at: {(pacific_time + timedelta(seconds=3600)).strftime('%I:%M %p PT')}")
+            
+        time.sleep(sleep_time)
+
 
 def get_all_teams():
     cached = cache.get('teams_data')
