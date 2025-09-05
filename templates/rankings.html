@@ -16,6 +16,26 @@
             --link-hover: #0D47A1;
             --rules-bg: #f9f9f9;
         }
+        .projected-points {
+            font-weight: bold;
+        }
+        
+        .projected-points.positive {
+            color: #03a103;  /* Yahoo's green */
+        }
+        
+        .projected-points.negative {
+            color: #f00;  /* Yahoo's red */
+        }
+        
+        /* Dark mode adjustments */
+        [data-theme="dark"] .projected-points.positive {
+            color: #00c500;  /* Brighter green for dark mode */
+        }
+        
+        [data-theme="dark"] .projected-points.negative {
+            color: #ff4040;  /* Lighter red for dark mode */
+        }
         .week-title {
             color: var(--header-bg);
             font-size: 1.8em;
@@ -254,7 +274,9 @@
                     {{ team.team_name }}
                 </a>
             </td>
-            <td>{{ "%.2f"|format(team.projected_points) }}</td>
+            <td class="projected-points {% if team.projected_points > 100 %}positive{% elif team.projected_points < 90 %}negative{% endif %}">
+                {{ "%.2f"|format(team.projected_points) }}
+            </td>
         </tr>
         {% endfor %}
     </table>
