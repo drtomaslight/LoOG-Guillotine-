@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 import time
 import re
-from datetime import datetime
+from datetime import datetime, timedelta 
 import pytz
 from cachelib.file import FileSystemCache
 import os
@@ -125,7 +125,8 @@ def is_game_time():
 def update_cache_in_background():
     while True:
         print("Starting cache update...")
-        pacific_time = datetime.now(pytz.timezone('US/Pacific'))
+        pacific_tz = pytz.timezone('US/Pacific')
+        pacific_time = datetime.now(pacific_tz)
         print(f"Current time (PT): {pacific_time.strftime('%I:%M %p')}")
         
         teams_data = scrape_team_data()
@@ -134,7 +135,7 @@ def update_cache_in_background():
             teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
             cache.set('teams_data', {
                 'teams': teams_data,
-                'last_updated': datetime.now(pytz.timezone('US/Pacific')),
+                'last_updated': datetime.now(pacific_tz),
             }, timeout=CACHE_TIMEOUT)
             print(f"Cache updated successfully with {len(teams_data)} teams")
         else:
@@ -143,16 +144,17 @@ def update_cache_in_background():
         # Determine next update interval
         if is_game_time():
             sleep_time = 300  # 5 minutes
-            print("Game time window active (TNF/SNF/MNF), next update in 5 minutes")
-            print(f"Next update at: {(pacific_time + timedelta(seconds=300)).strftime('%I:%M %p PT')}")
+            next_update = pacific_time + timedelta(seconds=300)
+            print("Game time window active, next update in 5 minutes")
+            print(f"Next update at: {next_update.strftime('%I:%M %p PT')}")
         else:
             sleep_time = 3600  # 1 hour
+            next_update = pacific_time + timedelta(seconds=3600)
             print("Outside game window, next update in 1 hour")
-            print(f"Next update at: {(pacific_time + timedelta(seconds=3600)).strftime('%I:%M %p PT')}")
+            print(f"Next update at: {next_update.strftime('%I:%M %p PT')}")
             
         time.sleep(sleep_time)
-
-
+        
 def get_all_teams():
     cached = cache.get('teams_data')
     if cached:
@@ -169,18 +171,21 @@ def health():
 def home():
     try:
         teams_data = get_all_teams()
-        cached_data = cache.get('teams_data')
-        
         if not teams_data:
             return "Data is being collected. Please check back in a few minutes.", 503
             
+        cached_data = cache.get('teams_data')
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
+        
+        # Sort teams by current points for display
+        teams_data.sort(key=lambda x: x['current_points'], reverse=True)
         
         return render_template('rankings.html',
                              teams=teams_data, 
                              last_updated=last_updated)
             
     except Exception as e:
+        print(f"Error in home route: {e}")
         return f"An error occurred: {str(e)}", 500
 
 @app.before_first_request
