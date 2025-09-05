@@ -168,6 +168,7 @@ def health():
     return 'OK', 200
 
 @app.route('/')
+@app.route('/')
 def home():
     try:
         teams_data = get_all_teams()
@@ -177,8 +178,8 @@ def home():
         cached_data = cache.get('teams_data')
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
         
-        # Sort teams by current points for display
-        teams_data.sort(key=lambda x: x['current_points'], reverse=True)
+        # Sort teams by projected points for display
+        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
         
         return render_template('rankings.html',
                              teams=teams_data, 
