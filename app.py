@@ -107,6 +107,7 @@ def scrape_team_data(url=None):
                                 color_class = 'F-negative'
                             
                             week1_score = WEEK_1_SCORES.get(team_number, 0.0)
+                            total_points = week1_score + projected
                             
                             teams_data.append({
                                 'team_name': team_name,
@@ -115,7 +116,8 @@ def scrape_team_data(url=None):
                                 'current_points': current_points,
                                 'progress_percentage': progress_percentage,
                                 'color_class': color_class,
-                                'week1_score': week1_score
+                                'week1_score': week1_score,
+                                'total_points': total_points
                             })
                             print(f"Added team: {team_name} (#{team_number})")
                         except Exception as e:
@@ -214,8 +216,8 @@ def home():
         cached_data = cache.get('teams_data')
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
         
-        # Sort teams by projected points for display
-        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
+        # Sort teams by total points for display
+        teams_data.sort(key=lambda x: x['total_points'], reverse=True)
         
         return render_template('rankings.html',
                              teams=teams_data, 
