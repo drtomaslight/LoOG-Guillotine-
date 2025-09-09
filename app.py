@@ -28,14 +28,13 @@ SCRAPE_INTERVAL = 1800  # 30 minutes
 WEEK_1_SCORES = {
     1: 126.44,    # Lamar-a-Lago 🙈🏨
     14: 114.62,   # Silence of the Lambs
-    11: 109.84,   # Justin Time
+    11: 109.84,   # Justin Time/StarBuckys (need to verify correct number)
     8: 108.06,    # Kevin's Nifty Team
     13: 105.94,   # Teddy Confetti
     16: 98.4,     # Engage Eight
     7: 96.5,      # That's My Quarterbacks
     3: 93.32,     # CJ Off with Their Heads!
     4: 91.26,     # David's Victorious Team
-    11: 90.48,    # StarBuckys
     2: 89.76,     # Bo Penix Energy
     12: 89.6,     # Kamara Sutra
     5: 76.44,     # Devin's Dazzling Team
@@ -53,27 +52,41 @@ def scrape_team_data(url=None):
         'Connection': 'keep-alive',
     }
     try:
+        print("Making request to Yahoo...")
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         
+        print(f"Got response: {response.status_code}")
         soup = BeautifulSoup(response.text, 'html.parser')
-        teams_data = []
         
-        # Find the correct table
+        # Debug: Save HTML for inspection
+        with open('debug.html', 'w', encoding='utf-8') as f:
+            f.write(response.text)
+        print("Saved response HTML for debugging")
+        
+        teams_data = []
+        print("Looking for tables...")
         tables = soup.find_all('table')
+        print(f"Found {len(tables)} tables")
+        
         for table in tables:
             headers = [th.text.strip() for th in table.find_all('th')]
+            print(f"Table headers: {headers}")
+            
             if 'Week Rank' in headers:
-                # Process each row
-                for row in table.find_all('tr')[1:]:  # Skip header row
+                print("Found correct table!")
+                rows = table.find_all('tr')[1:]  # Skip header row
+                print(f"Found {len(rows)} rows")
+                
+                for row in rows:
                     cells = row.find_all('td')
                     if len(cells) >= 4:
                         try:
-                            # Get team number from the link
-                            team_link = cells[2].find('a', hrefref=True)
+                            team_link = cells[2].find('a', href=True)
                             if not team_link:
+                                print("No team link found in cell")
                                 continue
-                            
+                                
                             team_href = team_link['href']
                             team_number = int(team_href.strip('/').split('/')[-1])
                             
@@ -81,21 +94,17 @@ def scrape_team_data(url=None):
                             proj_cell = cells[3]
                             projected = float(proj_cell.text.strip())
                             
-                            # Get current points from the fourth column
                             current_points = float(cells[4].text.strip()) if cells[4].text.strip() != '' else 0.0
                             
-                            # Calculculate progress percentage
                             progress_percentage = (current_points / projected * 100) if projected > 0 else 0
-                            progress_percentage = min(100, progress_percentage)  # Cap at 100%
+                            progress_percentage = min(100, progress_percentage)
                             
-                            # Get the color class
                             color_class = ''
                             if 'F-positive' in proj_cell.get('class', []):
                                 color_class = 'F-positive'
                             elif 'F-negative' in proj_cell.get('class', []):
                                 color_class = 'F-negative'
                             
-                            # Get Week 1 score
                             week1_score = WEEK_1_SCORES.get(team_number, 0.0)
                             
                             teams_data.append({
@@ -107,9 +116,10 @@ def scrape_team_data(url=None):
                                 'color_class': color_class,
                                 'week1_score': week1_score
                             })
-                            print(f"Found team: {team_name} (#{team_number}) - Week 1: {week1_score}, Projected: {projected}, Current: {current_points}, Progress: {progress_percentage:.2f}% [{color_class}]")
-                        except (ValueError, IndexError) as e:
-                            print(f"Error processing row: {e}")
+                            print(f"Added team: {team_name} (#{team_number})")
+                        except Exception as e:
+                            print(f"Error processing row: {str(e)}")
+                            print(f"Row HTML: {row}")
                             continue
                 
                 if len(teams_data) == 16:
@@ -120,6 +130,9 @@ def scrape_team_data(url=None):
             
     except Exception as e:
         print(f"Error scraping {url}: {e}")
+        print(f"Response status: {response.status_code if 'response' in locals() else 'No response'}")
+        if 'response' in locals():
+            print(f"Response content: {response.text[:500]}...")
         return None
         
 def is_game_time():
