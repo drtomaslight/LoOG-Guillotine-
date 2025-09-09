@@ -66,15 +66,15 @@ def scrape_team_data(url=None):
             if 'Week Rank' in headers:
                 # Process each row
                 for row in table.find_all('tr')[1:]:  # Skip header row
-                       cells = row.find_all('td')
+                    cells = row.find_all('td')
                     if len(cells) >= 4:
                         try:
                             # Get team number from the link
-                            team_link = cells[2].find('a', href=True)
+                            team_link = cells[2].find('a', hrefref=True)
                             if not team_link:
                                 continue
-                                
-                            team_href = team_linkink['href']
+                            
+                            team_href = team_link['href']
                             team_number = int(team_href.strip('/').split('/')[-1])
                             
                             team_name = cells[2].text.strip()
@@ -84,7 +84,7 @@ def scrape_team_data(url=None):
                             # Get current points from the fourth column
                             current_points = float(cells[4].text.strip()) if cells[4].text.strip() != '' else 0.0
                             
-                            # Calculate progress percentage
+                            # Calculculate progress percentage
                             progress_percentage = (current_points / projected * 100) if projected > 0 else 0
                             progress_percentage = min(100, progress_percentage)  # Cap at 100%
                             
@@ -111,10 +111,10 @@ def scrape_team_data(url=None):
                         except (ValueError, IndexError) as e:
                             print(f"Error processing row: {e}")
                             continue
-                            
+                
                 if len(teams_data) == 16:
                     return teams_data
-                
+        
         print(f"Found {len(teams_data)} teams")
         return teams_data if teams_data else None
             
