@@ -16,7 +16,17 @@
             --link-hover: #0D47A1;
             --rules-bg: #f9f9f9;
         }
-
+        
+        .total-points {
+            font-weight: bold;
+            color: #673AB7;  /* Purple color for total */
+        }
+        
+        /* Dark mode adjustment */
+        [data-theme="dark"] .total-points {
+            color: #B39DDB;  /* Lighter purple for dark mode */
+        }
+        
         .week1-score {
             font-weight: bold;
             color: #9C27B0;  /* Purple color for Week 1 scores */
@@ -312,6 +322,7 @@
             <th>Current Points</th>
             <th>Projected Points</th>
             <th>Progress</th>
+            <th>Total</th>
         </tr>
         {% for team in teams %}
         <tr>
@@ -333,10 +344,10 @@
                     </div>
                 </div>
             </td>
+            <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td>
         </tr>
         {% endfor %}
     </table>
-
 
     <script>
         const toggleSwitch = document.querySelector('#checkbox');
