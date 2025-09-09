@@ -27,6 +27,7 @@ SCRAPE_INTERVAL = 1800  # 30 minutes
 
 WEEK_1_SCORES = {
     1: 126.44,    # Lamar-a-Lago 🙈🏨
+    9: 109.84,    # Justin Time
     14: 114.62,   # Silence of the Lambs
     11: 109.84,   # Justin Time/StarBuckys (need to verify correct number)
     8: 108.06,    # Kevin's Nifty Team
