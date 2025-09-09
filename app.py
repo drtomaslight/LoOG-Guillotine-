@@ -25,6 +25,25 @@ cache = FileSystemCache(cache_dir)
 CACHE_TIMEOUT = 4000  # 30 minutes
 SCRAPE_INTERVAL = 1800  # 30 minutes
 
+WEEK_1_SCORES = {
+    1: 126.44,    # Lamar-a-Lago 🙈🏨
+    14: 114.62,   # Silence of the Lambs
+    11: 109.84,   # Justin Time
+    8: 108.06,    # Kevin's Nifty Team
+    13: 105.94,   # Teddy Confetti
+    16: 98.4,     # Engage Eight
+    7: 96.5,      # That's My Quarterbacks
+    3: 93.32,     # CJ Off with Their Heads!
+    4: 91.26,     # David's Victorious Team
+    11: 90.48,    # StarBuckys
+    2: 89.76,     # Bo Penix Energy
+    12: 89.6,     # Kamara Sutra
+    5: 76.44,     # Devin's Dazzling Team
+    15: 72.2,     # Josh's Mind-Blowing Team
+    10: 70.0,     # LT's Legendary Team
+    6: 47.84      # FAABulous
+}
+
 def scrape_team_data(url=None):
     url = 'https://football.fantasysports.yahoo.com/f1/723352'
     headers = {
@@ -47,7 +66,7 @@ def scrape_team_data(url=None):
             if 'Week Rank' in headers:
                 # Process each row
                 for row in table.find_all('tr')[1:]:  # Skip header row
-                    cells = row.find_all('td')
+                       cells = row.find_all('td')
                     if len(cells) >= 4:
                         try:
                             # Get team number from the link
@@ -55,7 +74,7 @@ def scrape_team_data(url=None):
                             if not team_link:
                                 continue
                                 
-                            team_href = team_link['href']
+                            team_href = team_linkink['href']
                             team_number = int(team_href.strip('/').split('/')[-1])
                             
                             team_name = cells[2].text.strip()
@@ -76,15 +95,19 @@ def scrape_team_data(url=None):
                             elif 'F-negative' in proj_cell.get('class', []):
                                 color_class = 'F-negative'
                             
+                            # Get Week 1 score
+                            week1_score = WEEK_1_SCORES.get(team_number, 0.0)
+                            
                             teams_data.append({
                                 'team_name': team_name,
                                 'team_number': team_number,
                                 'projected_points': projected,
                                 'current_points': current_points,
                                 'progress_percentage': progress_percentage,
-                                'color_class': color_class
+                                'color_class': color_class,
+                                'week1_score': week1_score
                             })
-                            print(f"Found team: {team_name} (#{team_number}) - Projected: {projected}, Current: {current_points}, Progress: {progress_percentage:.2f}% [{color_class}]")
+                            print(f"Found team: {team_name} (#{team_number}) - Week 1: {week1_score}, Projected: {projected}, Current: {current_points}, Progress: {progress_percentage:.2f}% [{color_class}]")
                         except (ValueError, IndexError) as e:
                             print(f"Error processing row: {e}")
                             continue
@@ -167,7 +190,6 @@ def get_all_teams():
 def health():
     return 'OK', 200
 
-@app.route('/')
 @app.route('/')
 def home():
     try:
