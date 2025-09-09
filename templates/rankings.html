@@ -151,15 +151,28 @@
             background-color: var(--table-bg);
         }
 
-        th, td { 
-            border: 1px solid var(--table-border); 
-            padding: 12px; 
-            text-align: left; 
+        th, td {
+            border: 1px solid var(--table-border);
+            padding: 12px;
+            text-align: center;  /* Center-align all cell content */
+            vertical-align: middle;  /* Middle-align vertically */
         }
-
-        th { 
-            background-color: var(--header-bg); 
-            color: var(--header-text); 
+    
+        th {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            font-weight: bold;
+        }
+    
+        /* If you want to left-align the team names */
+        td:nth-child(2) {
+            text-align: left;
+        }
+    
+        /* Adjust progress bar alignment */
+        .progress-bar-container {
+            margin: 0 auto;  /* Center the progress bar */
+            width: 80%;  /* Adjust width as needed */
         }
 
         tr:nth-child(even) { 
@@ -315,38 +328,42 @@
     </div>
     
     <table>
-        <tr>
-            <th>Rank</th>
-            <th>Team Name</th>
-            <th>Week 1</th>
-            <th>Current Points</th>
-            <th>Projected Points</th>
-            <th>Progress</th>
-            <th>Total</th>
-        </tr>
-        {% for team in teams %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>
-                <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
-                    {{ team.team_name }}
-                </a>
-            </td>
-            <td class="week1-score">{{ "%.2f"|format(team.week1_score) }}</td>
-            <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
-            <td class="projected-points {{ team.color_class }}">
-                {{ "%.2f"|format(team.projected_points) }}
-            </td>
-            <td>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" style="width: {{ team.progress_percentage }}%;">
-                        {{ "%.2f"|format(team.progress_percentage) }}%
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Team Name</th>
+                <th>Week 1</th>
+                <th>Current Points</th>
+                <th>Projected Points</th>
+                <th>Progress</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in teams %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
+                        {{ team.team_name }}
+                    </a>
+                </td>
+                <td class="week1-score">{{ "%.2f"|format(team.week1_score) }}</td>
+                <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
+                <td class="projected-points {{ team.color_class }}">
+                    {{ "%.2f"|format(team.projected_points) }}
+                </td>
+                <td>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ team.progress_percentage }}%;">
+                            {{ "%.2f"|format(team.progress_percentage) }}%
+                        </div>
                     </div>
-                </div>
-            </td>
-            <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td>
-        </tr>
-        {% endfor %}
+                </td>
+                <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
 
     <script>
