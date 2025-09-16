@@ -18,22 +18,28 @@
         }
 
         .highlight-row {
-            background-color: rgba(76, 175, 80, 0.1) !important;  /* Light green background */
+            background-color: rgba(76, 175, 80, 0.3) !important;  /* Increased opacity */
             font-weight: bold;
+            border-left: 4px solid #4CAF50 !important;  /* Added green border on left */
+            border-right: 4px solid #4CAF50 !important;  /* Added green border on right */
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.2);  /* Added subtle glow */
         }
         
         /* Dark mode adjustment */
         [data-theme="dark"] .highlight-row {
-            background-color: rgba(76, 175, 80, 0.2) !important;  /* Darker green for dark mode */
+            background-color: rgba(76, 175, 80, 0.4) !important;  /* Increased opacity for dark mode */
+            border-left: 4px solid #66bb6a !important;  /* Lighter green for dark mode */
+            border-right: 4px solid #66bb6a !important;  /* Lighter green for dark mode */
+            box-shadow: 0 0 10px rgba(102, 187, 106, 0.3);  /* Adjusted glow for dark mode */
         }
         
         /* Make sure the highlight stays when hovering */
         .highlight-row:hover {
-            background-color: rgba(76, 175, 80, 0.15) !important;
+            background-color: rgba(76, 175, 80, 0.35) !important;  /* Slightly darker on hover */
         }
         
         [data-theme="dark"] .highlight-row:hover {
-            background-color: rgba(76, 175, 80, 0.25) !important;
+            background-color: rgba(76, 175, 80, 0.45) !important;  /* Slightly darker on hover for dark mode */
         }
         
         .total-points {
