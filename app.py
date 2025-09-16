@@ -217,7 +217,8 @@ def home():
         last_updated = cached_data['last_updated'] if cached_data else datetime.now(pytz.timezone('US/Pacific'))
         
         # Sort teams by total points for display
-        teams_data.sort(key=lambda x: x['total_points'], reverse=True)
+        # teams_data.sort(key=lambda x: x['total_points'], reverse=True)
+        teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
         
         return render_template('rankings.html',
                              teams=teams_data, 
