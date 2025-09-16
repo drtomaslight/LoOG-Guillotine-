@@ -16,6 +16,25 @@
             --link-hover: #0D47A1;
             --rules-bg: #f9f9f9;
         }
+
+        .highlight-row {
+            background-color: rgba(76, 175, 80, 0.1) !important;  /* Light green background */
+            font-weight: bold;
+        }
+        
+        /* Dark mode adjustment */
+        [data-theme="dark"] .highlight-row {
+            background-color: rgba(76, 175, 80, 0.2) !important;  /* Darker green for dark mode */
+        }
+        
+        /* Make sure the highlight stays when hovering */
+        .highlight-row:hover {
+            background-color: rgba(76, 175, 80, 0.15) !important;
+        }
+        
+        [data-theme="dark"] .highlight-row:hover {
+            background-color: rgba(76, 175, 80, 0.25) !important;
+        }
         
         .total-points {
             font-weight: bold;
@@ -341,7 +360,7 @@
         </thead>
         <tbody>
             {% for team in teams %}
-            <tr>
+            <tr {% if team.team_name == "StarBuckys" %}class="highlight-row"{% endif %}>
                 <td>{{ loop.index }}</td>
                 <td>
                     <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
