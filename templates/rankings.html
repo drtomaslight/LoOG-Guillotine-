@@ -376,6 +376,7 @@
                     </a>
                 </td>
                 <!-- <td class="week3-score">{{ "%.2f"|format(team.week3_score) }}</td> -->
+                <td class="week3-score">{{ "%.2f"|format(team.week3_score) }}</td>
                 <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
                 <td class="projected-points {{ team.color_class }}">
                     {{ "%.2f"|format(team.projected_points) }}
@@ -388,6 +389,7 @@
                     </div>
                 </td>
                 <!-- <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td> -->
+                <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td>
             </tr>
             {% endfor %}
         </tbody>
