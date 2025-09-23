@@ -52,13 +52,13 @@
             color: #B39DDB;  /* Lighter purple for dark mode */
         }
         
-        .week1-score {
+        .week3-score {
             font-weight: bold;
             color: #9C27B0;  /* Purple color for Week 1 scores */
         }
         
         /* Dark mode adjustment */
-        [data-theme="dark"] .week1-score {
+        [data-theme="dark"] .week3-score {
             color: #CE93D8;  /* Lighter purple for dark mode */
         }
         
@@ -373,7 +373,7 @@
                         {{ team.team_name }}
                     </a>
                 </td>
-                <!-- <td class="week1-score">{{ "%.2f"|format(team.week1_score) }}</td> -->
+                <!-- <td class="week3-score">{{ "%.2f"|format(team.week3_score) }}</td> -->
                 <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
                 <td class="projected-points {{ team.color_class }}">
                     {{ "%.2f"|format(team.projected_points) }}
