@@ -25,23 +25,23 @@ cache = FileSystemCache(cache_dir)
 CACHE_TIMEOUT = 4000  # 30 minutes
 SCRAPE_INTERVAL = 1800  # 30 minutes
 
-WEEK_1_SCORES = {
-    1: 126.44,    # Lamar-a-Lago 🙈🏨
-    9: 109.84,    # Justin Time
-    14: 114.62,   # Silence of the Lambs
-    11: 109.84,   # Justin Time/StarBuckys (need to verify correct number)
-    8: 108.06,    # Kevin's Nifty Team
-    13: 105.94,   # Teddy Confetti
-    16: 98.4,     # Engage Eight
-    7: 96.5,      # That's My Quarterbacks
-    3: 93.32,     # CJ Off with Their Heads!
-    4: 91.26,     # David's Victorious Team
-    2: 89.76,     # Bo Penix Energy
-    12: 89.6,     # Kamara Sutra
-    5: 76.44,     # Devin's Dazzling Team
-    15: 72.2,     # Josh's Mind-Blowing Team
-    10: 70.0,     # LT's Legendary Team
-    6: 47.84      # FAABulous
+WEEK_3_SCORES = {
+    1: 80.44,    # Lamar-a-Lago 🙈🏨
+    9: 56.60,    # Justin Time
+    14: 88.64,   # Silence of the Lambs
+    11: 73.94,   # StarBuckys
+    8: 91.78,    # Kevin's Nifty Team
+    13: 119.12,   # Teddy Confetti
+    16: 92.80,     # Engage Eight
+    7: 110.08,      # That's My Quarterbacks
+    3: 72.32,     # CJ Off with Their Heads!
+    4: 107.44,     # David's Victorious Team
+    2: 93.80,     # Bo Penix Energy
+    12: 112.30,     # Kamara Sutra
+    5: 81.90,     # Devin's Dazzling Team
+    15: 67.10,     # Josh's Mind-Blowing Team
+    10: 111.50,     # LT's Legendary Team
+    6: 0.00      # FAABulous
 }
 
 def scrape_team_data(url=None):
@@ -106,8 +106,8 @@ def scrape_team_data(url=None):
                             elif 'F-negative' in proj_cell.get('class', []):
                                 color_class = 'F-negative'
                             
-                            week1_score = WEEK_1_SCORES.get(team_number, 0.0)
-                            total_points = week1_score + projected
+                            week3_score = WEEK_3_SCORES.get(team_number, 0.0)
+                            total_points = week3_score + projected
                             
                             teams_data.append({
                                 'team_name': team_name,
