@@ -116,7 +116,7 @@ def scrape_team_data(url=None):
                                 'current_points': current_points,
                                 'progress_percentage': progress_percentage,
                                 'color_class': color_class,
-                                'week1_score': week1_score,
+                                'week3_score': week3_score,
                                 'total_points': total_points
                             })
                             print(f"Added team: {team_name} (#{team_number})")
