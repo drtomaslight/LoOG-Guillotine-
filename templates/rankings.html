@@ -372,7 +372,7 @@
                 <!--<td>{{ teams|length - loop.index0 }}</td>-->
                 <td>
                     {% set rank = teams|length - loop.index0 %}
-                        {% if rank == 1 %}
+                        {% if rank == teams|length %}
                             🪓
                         {% else %}
                             {{ rank }}
