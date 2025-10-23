@@ -369,7 +369,15 @@
              <!-- Edit team with immunity-->
             <tr {% if team.team_number == 7 or team.team_number == 16 %}class="highlight-row"{% endif %}>
              <!--<tr {% if team.team_number == 4 %}class="highlight-row"{% endif %}>-->
-                <td>{{ teams|length - loop.index0 }}</td>
+                <!--<td>{{ teams|length - loop.index0 }}</td>-->
+                <td>
+                    {% set rank = teams|length - loop.index0 %}
+                        {% if rank == 1 %}
+                            🪓
+                        {% else %}
+                            {{ rank }}
+                    {% endif %}
+                </td>
                 <td>
                     <a href="https://football.fantasysports.yahoo.com/f1/723352/{{ team.team_number }}" target="_blank">
                         {{ team.team_name }}
