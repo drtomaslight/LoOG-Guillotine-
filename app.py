@@ -28,6 +28,35 @@ SCRAPE_INTERVAL = 1800  # 30 minutes
 # League has 12 teams; default 10 leaves a little slack. Override via env var.
 MIN_TEAMS = int(os.environ.get('MIN_TEAMS', '10'))
 
+# Season configuration for the auto-advancing week title.
+# SEASON_START = the Tuesday that begins fantasy Week 1 (the day the week
+# "rolls over" after MNF). 2026 Week 1 Thursday kickoff is Sep 10, so the
+# week begins Tue Sep 8, 2026. Override with the SEASON_START env var
+# (format YYYY-MM-DD) each season instead of editing code.
+SEASON_START = os.environ.get('SEASON_START', '2026-09-08')
+TOTAL_WEEKS = int(os.environ.get('TOTAL_WEEKS', '17'))
+
+
+def get_current_nfl_week():
+    """Return the current fantasy week number (1..TOTAL_WEEKS) based on today.
+
+    Weeks advance every Tuesday (00:00 US/Pacific) so the title flips to the
+    next week right after Monday Night Football, matching the league's
+    Tuesday-morning cadence. Falls back to Week 1 on any parsing error.
+    """
+    try:
+        pacific = pytz.timezone('US/Pacific')
+        start = pacific.localize(datetime.strptime(SEASON_START, '%Y-%m-%d'))
+        now = datetime.now(pacific)
+        if now < start:
+            return 1
+        weeks_elapsed = (now - start).days // 7
+        week = weeks_elapsed + 1
+        return max(1, min(week, TOTAL_WEEKS))
+    except Exception as e:
+        print(f"Error computing NFL week: {e}")
+        return 1
+
 WEEK_3_SCORES = {
     1: 80.44,    # Lamar-a-Lago 🙈🏨
     9: 56.60,    # Justin Time
@@ -244,7 +273,8 @@ def home():
         
         return render_template('rankings.html',
                              teams=teams_data, 
-                             last_updated=last_updated)
+                             last_updated=last_updated,
+                             current_week=get_current_nfl_week())
             
     except Exception as e:
         print(f"Error in home route: {e}")
