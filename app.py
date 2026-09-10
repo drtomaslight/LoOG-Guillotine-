@@ -24,6 +24,9 @@ cache = FileSystemCache(cache_dir)
 # Constants
 CACHE_TIMEOUT = 4000  # 30 minutes
 SCRAPE_INTERVAL = 1800  # 30 minutes
+# Minimum number of teams that must parse before we trust/cache the data.
+# League has 12 teams; default 10 leaves a little slack. Override via env var.
+MIN_TEAMS = int(os.environ.get('MIN_TEAMS', '10'))
 
 WEEK_3_SCORES = {
     1: 80.44,    # Lamar-a-Lago 🙈🏨
@@ -45,17 +48,31 @@ WEEK_3_SCORES = {
 }
 
 def scrape_team_data(url=None):
-    url = 'https://football.fantasysports.yahoo.com/f1/723352'
+    # League URL (id 313248). Override via LEAGUE_URL env var if it ever changes.
+    url = os.environ.get(
+        'LEAGUE_URL',
+        'https://football.fantasysports.yahoo.com/f1/313248'
+    )
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
     }
+    # Yahoo standings require an authenticated session. Paste your logged-in
+    # Yahoo cookie string into the YAHOO_COOKIE env var on Render.
+    yahoo_cookie = os.environ.get('YAHOO_COOKIE', '').strip()
+    if yahoo_cookie:
+        headers['Cookie'] = yahoo_cookie
     try:
         print("Making request to Yahoo...")
-        response = requests.get(url, headers=headers, timeout=10)
+        print(f"Auth cookie present: {bool(yahoo_cookie)}")
+        response = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
         response.raise_for_status()
+        # Detect the login-redirect case so logs are clear
+        if 'login.yahoo.com' in response.url or '<title>Login' in response.text[:2000]:
+            print("WARNING: Yahoo redirected to login. YAHOO_COOKIE is missing or expired.")
         
         print(f"Got response: {response.status_code}")
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -125,7 +142,7 @@ def scrape_team_data(url=None):
                             print(f"Row HTML: {row}")
                             continue
                 
-                if len(teams_data) == 16:
+                if len(teams_data) >= MIN_TEAMS:
                     return teams_data
         
         print(f"Found {len(teams_data)} teams")
@@ -170,7 +187,7 @@ def update_cache_in_background():
         
         teams_data = scrape_team_data()
         
-        if teams_data and len(teams_data) == 16:
+        if teams_data and len(teams_data) >= MIN_TEAMS:
             teams_data.sort(key=lambda x: x['projected_points'], reverse=True)
             cache.set('teams_data', {
                 'teams': teams_data,
@@ -178,7 +195,7 @@ def update_cache_in_background():
             }, timeout=CACHE_TIMEOUT)
             print(f"Cache updated successfully with {len(teams_data)} teams")
         else:
-            print(f"Cache update failed. Got {len(teams_data) if teams_data else 0} teams, expected 16")
+            print(f"Cache update failed. Got {len(teams_data) if teams_data else 0} teams, expected >= {MIN_TEAMS}")
         
         # Determine next update interval
         if is_game_time():
