@@ -331,12 +331,11 @@
     </div>
 
     <h1>League of Ordinary Gentlemen Guillotine Projections</h1>
-    <h2 class="current-week">{{ current_week }}</h2>
     <div class="last-updated">
         Last updated: {{ last_updated.strftime('%I:%M %p PT on %B %d, %Y') }}
     </div>
     
-    <h2 class="week-title">Week 1</h2>  <!-- Added subtitle -->
+    <h2 class="week-title">Week {{ current_week }}</h2>  <!-- Auto-advancing week -->
 
     <table>
         <thead>
