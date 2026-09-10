@@ -337,20 +337,56 @@
     </div>
     
     <h2 class="week-title">Week 1</h2>  <!-- Added subtitle -->
-     <!--
-    <div class="rules">
-        <h2>Immunities/Weekly Rules:</h2>
-        <ul>
-            <!-- <li>Week 1-Week 11: Highest scoring team gets immunity the following week</li> -->
-            <!-- <li>Week 1 + 2 - 1st Cut</li> -->
-            <!-- <li>Week 3 + 4 - 2nd Cut</li> -->
-            <!-- <li>Week 5: Bestball scoring for the week.</li>
-            <!-- <li>Week 7: Starting TEs get 1.5x points for the week.</li>  -->
-            <!-- <li>Week 8: Highest scoring team thru 7 weeks gets immunity week 8 (possible to get 2 teams with immunity week 8)</li> -->
-            <!-- <li>Week 10: Bestball scoring for the week</li> -->
-            <!-- <li class="highlight">Week 12: Starting rookies get double points for the week.</li>
-        </ul>
-    </div> -->
+
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Team Name</th>
+                <!-- <th>Week 3</th> -->
+                <th>Current Points</th>
+                <th>Projected Points</th>
+                <th>Progress</th>
+                <!-- <th>Total</th> -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in teams %}
+             <!-- Edit team with immunity: set a team_number below to highlight that team -->
+             <!--<tr {% if team.team_number == 7 or team.team_number == 16 %}class="highlight-row"{% endif %}>-->
+             <tr>
+                <!--<td>{{ teams|length - loop.index0 }}</td>-->
+                <td>
+                    {% set rank = teams|length - loop.index0 %}
+                        {% if rank == teams|length %}
+                            🪓
+                        {% else %}
+                            {{ rank }}
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="https://football.fantasysports.yahoo.com/f1/313248/{{ team.team_number }}" target="_blank">
+                        {{ team.team_name }}
+                    </a>
+                </td>
+                <!-- <td class="week3-score">{{ "%.2f"|format(team.week3_score) }}</td> -->
+                <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
+                <td class="projected-points {{ team.color_class }}">
+                    {{ "%.2f"|format(team.projected_points) }}
+                </td>
+                <td>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ team.progress_percentage }}%;">
+                            {{ "%.2f"|format(team.progress_percentage) }}%
+                        </div>
+                    </div>
+                </td>
+                <!-- <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td> -->
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
 
     <div class="rules">
         <h2>🚨 12-Man Guillotine &amp; Vampire League 🚨</h2>
@@ -396,56 +432,6 @@
             <li>After MNF of Week 13: 5 → 6 bench slots</li>
         </ul>
     </div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Team Name</th>
-                <!-- <th>Week 3</th> -->
-                <th>Current Points</th>
-                <th>Projected Points</th>
-                <th>Progress</th>
-                <!-- <th>Total</th> -->
-            </tr>
-        </thead>
-        <tbody>
-            {% for team in teams %}
-             <!-- Edit team with immunity-->
-             <!--<tr {% if team.team_number == 7 or team.team_number == 16 %}class="highlight-row"{% endif %}>-->
-             <tr {% if team.team_number == 1 %}class="highlight-row"{% endif %}>
-                <!--<td>{{ teams|length - loop.index0 }}</td>-->
-                <td>
-                    {% set rank = teams|length - loop.index0 %}
-                        {% if rank == teams|length %}
-                            🪓
-                        {% else %}
-                            {{ rank }}
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="https://football.fantasysports.yahoo.com/f1/313248/{{ team.team_number }}" target="_blank">
-                        {{ team.team_name }}
-                    </a>
-                </td>
-                <!-- <td class="week3-score">{{ "%.2f"|format(team.week3_score) }}</td> -->
-                <td class="current-points">{{ "%.2f"|format(team.current_points) }}</td>
-                <td class="projected-points {{ team.color_class }}">
-                    {{ "%.2f"|format(team.projected_points) }}
-                </td>
-                <td>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" style="width: {{ team.progress_percentage }}%;">
-                            {{ "%.2f"|format(team.progress_percentage) }}%
-                        </div>
-                    </div>
-                </td>
-                <!-- <td class="total-points">{{ "%.2f"|format(team.total_points) }}</td> -->
-            </tr>
-            {% endfor %}
-        </tbody>
-
-    </table>
 
     <script>
         const toggleSwitch = document.querySelector('#checkbox');
