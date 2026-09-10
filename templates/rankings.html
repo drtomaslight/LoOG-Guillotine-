@@ -41,6 +41,41 @@
         [data-theme="dark"] .highlight-row:hover {
             background-color: rgba(76, 175, 80, 0.45) !important;  /* Slightly darker on hover for dark mode */
         }
+
+        /* On the chopping block: lowest projected team this week */
+        .danger-row {
+            background-color: rgba(244, 67, 54, 0.18) !important;
+            border-left: 4px solid #f44336 !important;
+        }
+        .danger-row:hover {
+            background-color: rgba(244, 67, 54, 0.28) !important;
+        }
+        [data-theme="dark"] .danger-row {
+            background-color: rgba(244, 67, 54, 0.28) !important;
+            border-left: 4px solid #ef5350 !important;
+        }
+
+        /* Safe / weekly immunity: highest projected team this week */
+        .immune-row {
+            background-color: rgba(76, 175, 80, 0.18) !important;
+            border-left: 4px solid #4CAF50 !important;
+        }
+        .immune-row:hover {
+            background-color: rgba(76, 175, 80, 0.28) !important;
+        }
+        [data-theme="dark"] .immune-row {
+            background-color: rgba(76, 175, 80, 0.28) !important;
+            border-left: 4px solid #66bb6a !important;
+        }
+
+        /* Survivors banner */
+        .survivors {
+            text-align: center;
+            font-size: 1.05em;
+            font-weight: bold;
+            margin: 4px 0 12px;
+            color: var(--text-color);
+        }
         
         .total-points {
             font-weight: bold;
@@ -319,6 +354,55 @@
             font-size: 1rem;
             color: var(--text-color);
         }
+
+        /* Horizontal scroll wrapper so the table never overflows small screens */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Sticky header while scrolling the table */
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        /* Mobile tweaks */
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+            h1 {
+                font-size: 1.3em;
+            }
+            .week-title {
+                font-size: 1.3em;
+                letter-spacing: 1px;
+                padding: 6px;
+            }
+            th, td {
+                padding: 6px 5px;
+                font-size: 0.85em;
+            }
+            .progress-bar-container {
+                width: 100%;
+            }
+            .progress-bar {
+                height: 16px;
+                line-height: 16px;
+                font-size: 0.75em;
+            }
+            .theme-switch-wrapper {
+                position: static;
+                justify-content: flex-end;
+                margin-bottom: 8px;
+            }
+            .rules li {
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -337,6 +421,11 @@
     
     <h2 class="week-title">Week {{ current_week }}</h2>  <!-- Auto-advancing week -->
 
+    <div class="survivors">
+        🪓 {{ teams|length }} teams remaining
+    </div>
+
+    <div class="table-wrapper">
     <table>
         <thead>
             <tr>
@@ -351,14 +440,15 @@
         </thead>
         <tbody>
             {% for team in teams %}
-             <!-- Edit team with immunity: set a team_number below to highlight that team -->
-             <!--<tr {% if team.team_number == 7 or team.team_number == 16 %}class="highlight-row"{% endif %}>-->
-             <tr>
+             <!-- Teams are sorted lowest projected first: first = chopping block, last = weekly immunity -->
+             <tr {% if loop.first %}class="danger-row"{% elif loop.last %}class="immune-row"{% endif %}>
                 <!--<td>{{ teams|length - loop.index0 }}</td>-->
                 <td>
                     {% set rank = teams|length - loop.index0 %}
                         {% if rank == teams|length %}
                             🪓
+                        {% elif loop.last %}
+                            {{ rank }} 🛡️
                         {% else %}
                             {{ rank }}
                     {% endif %}
@@ -386,6 +476,7 @@
         </tbody>
 
     </table>
+    </div>
 
     <div class="rules">
         <h2>🚨 12-Man Guillotine &amp; Vampire League 🚨</h2>
